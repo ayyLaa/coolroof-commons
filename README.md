@@ -463,4 +463,3 @@ cd backend && uvicorn app.main:app --reload
 - Coverage fallback is only for simulated records that never referenced a photo. A missing uploaded image cannot be promoted to full-confidence evidence.
 - Weather summaries include precipitation and the exact available follow-up window. Oracle submission uses that same summary rather than a separate nearest-hour rainfall query.
 - The contract ABI now includes a hashed measurement id and measured-at timestamp; prior deployments and clients must be replaced or updated together.
-- [Proposed 120-second video narration](VIDEO_SCRIPT.md) and [field validation plan](FIELD_VALIDATION_PLAN.md) distinguish planned experiments from completed evidence.
