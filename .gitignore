@@ -1,0 +1,65 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.Python
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- Node ---
+node_modules/
+dist/
+build/
+.next/
+.turbo/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- Env / secrets ---
+.env
+.env.*
+!.env.example
+
+# --- IDE / OS ---
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# --- Solidity / Hardhat / Foundry ---
+artifacts/
+cache/
+out/
+broadcast/
+
+# --- Data ---
+data/*
+!data/.gitkeep
+# Committed report copies the backend falls back to (see README).
+!data/snapshots/
+*.log
+
+# Browser test artifacts
+frontend/test-results/
+frontend/playwright-report/
+
+prompts.txt
+VALIDATION_REPORT.md
+VIDEO_SCRIPT.md
+FIELD_VALIDATION_PLAN.md
+EKSIKLER_RAPORU.md
+DUZELTME_SONUCLARI.md
+DEVPOST.md
+DELIVERY_CHECKLIST.txt
+CLAUDE.md
+AGENTS.md

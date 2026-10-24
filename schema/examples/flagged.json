@@ -1,0 +1,28 @@
+{
+  "roof_id": "ATH-0087",
+  "status": "flagged",
+  "measured_delta_c": -6.3,
+  "normalized_delta_c": -5.4,
+  "coverage_pct": 78.0,
+  "anomaly_flags": [
+    "coverage_below_threshold",
+    "sensor_drift_suspected"
+  ],
+  "force_majeure": false,
+  "weather": {
+    "ambient_c": 29.7,
+    "radiation_wm2": 760,
+    "wind_ms": 2.1,
+    "max_gust_ms": 5.6,
+    "precipitation_mm": 0.0,
+    "window_start": "2026-07-18T11:40:00Z",
+    "window_end": "2026-07-18T12:40:00+00:00"
+  },
+  "evidence_hash": "0x640ba3c7f78837c7d69ecda51c36067fff1c13c89a26fa3b0902af25e9cafb38",
+  "device_signature": "0xed9f36f5b61144a61e6b63c1df366a9b292967a2867c8c528875465b6c48ca6a5f21d624d2f6478eaceace4a1d0f3f81ff9db7adf7086973d8affde3f827456442",
+  "measured_at": "2026-07-18T11:40:00Z",
+  "reason": "Normalize edilmiş fark (-5.4°C) eşik değerin (-8.0°C) altında kalıyor ve kapsama yüzdesi (%78.0) gerekli %85'in altında. Ayrıca bir sensörde sapma şüphesi var; otomatik onay yerine manuel incelemeye düşürüldü.",
+  "data_source": "simulated",
+  "measurement_id": "11111111-1111-4111-8111-111111111111",
+  "measurement_phase": "after"
+}

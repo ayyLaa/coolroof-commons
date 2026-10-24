@@ -1,0 +1,9 @@
+-r ../backend/requirements.txt
+-r ../ml/requirements.txt
+osmnx>=2
+geopandas
+pandas
+shapely
+earthengine-api
+google-auth
+osmium

@@ -1,0 +1,25 @@
+{
+  "roof_id": "ATH-0142",
+  "status": "approved",
+  "measured_delta_c": -9.8,
+  "normalized_delta_c": -9.1,
+  "coverage_pct": 93.5,
+  "anomaly_flags": [],
+  "force_majeure": false,
+  "weather": {
+    "ambient_c": 31.2,
+    "radiation_wm2": 820,
+    "wind_ms": 3.4,
+    "max_gust_ms": 7.1,
+    "precipitation_mm": 0.0,
+    "window_start": "2026-07-14T12:05:00Z",
+    "window_end": "2026-07-14T13:05:00+00:00"
+  },
+  "evidence_hash": "0xe45b988096d509a561147d6c9c9a70f7d38d16f6e38925c8d0354c6a65279261",
+  "device_signature": "0x003970c6fe243ddc01eee2d95d19de0e790b568f57c0d0ad05528cf15381609d09be23b11f58efc37b275017d5ae233211304a75ff7cd8549efe21f07ae74f107a",
+  "measured_at": "2026-07-14T12:05:00Z",
+  "reason": "Normalize edilmiş sıcaklık düşüşü (-9.1°C) eşik değerin (-8.0°C) altında ve kaplama kapsamı (%93.5) gerekli eşiği (%85) aşıyor. Anomali tespit edilmedi, fon serbest bırakılabilir.",
+  "data_source": "simulated",
+  "measurement_id": "11111111-1111-4111-8111-111111111111",
+  "measurement_phase": "after"
+}

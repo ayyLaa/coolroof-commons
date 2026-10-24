@@ -1,0 +1,101 @@
+{
+  "data_source": "simulated",
+  "weather_source": "open-meteo hourly weather (real, third_party)",
+  "generated_at": "2026-10-21T16:09:16.484615+03:00",
+  "primary_method": "demand_weighted",
+  "secondary_method": "solar_only",
+  "secondary_method_note": "solar_only counts every hour of winter sun as a heating penalty, whether or not the building needs heat then. Athens's winter sun is 2.8x London's (237.1 vs 85.2 kWh/m2), so this framing charges Athens a winter penalty of 111.7 vs 52.2 kWh/m2. Same data, opposite conclusions: solar_only ranks London first on net benefit, demand_weighted ranks Athens first. We use demand_weighted because kept-out sunlight only costs or saves energy in hours when the building needs heating or cooling.",
+  "methods": {
+    "demand_weighted": "Sunlight no longer absorbed = hourly global horizontal irradiation x (coated albedo - current median albedo), counted as benefit in hours above 24.0 C (cooling degree-hours) and as penalty in hours below 15.5 C (heating degree-hours), over summer and winter.",
+    "solar_only": "The same kept-out sunlight with all summer hours as benefit and all winter hours as penalty, regardless of heating or cooling demand."
+  },
+  "cities": [
+    {
+      "city": "Athens",
+      "summer_period": "2026-06-01..2026-08-31",
+      "winter_period": "2025-12-01..2026-02-28",
+      "roofs": 573,
+      "median_current_albedo": 0.279,
+      "coated_albedo": 0.75,
+      "heat_reference": {
+        "summer_max_ambient_c": 39.0,
+        "summer_year": 2026,
+        "historical_peak": null,
+        "text": "Hottest hour of summer 2026 at the Athens reference point: 39.0 C (Open-Meteo)."
+      },
+      "summer_surface_cooling_c": 16.35,
+      "summer_peak_surface_cooling_c": 36.47,
+      "heating_degree_hours": 9270.0,
+      "cooling_degree_hours": 10093.0,
+      "winter_heating_degree_days": 386.0,
+      "winter_irradiation_kwh_per_m2": 237.1,
+      "net_benefit_kwh_per_m2": 240.8,
+      "demand_weighted": {
+        "cooling_base_c": 24.0,
+        "heating_base_c": 15.5,
+        "cooling_benefit_kwh_per_m2": 322.9,
+        "heating_penalty_kwh_per_m2": 82.1,
+        "net_benefit_kwh_per_m2": 240.8,
+        "penalty_to_benefit_ratio": 0.254
+      },
+      "solar_only": {
+        "cooling_benefit_kwh_per_m2": 327.5,
+        "heating_penalty_kwh_per_m2": 111.7,
+        "net_benefit_kwh_per_m2": 215.8,
+        "penalty_to_benefit_ratio": 0.341
+      },
+      "typical_roof_net_kwh": {
+        "small": 33315.0,
+        "large": 717849.0
+      }
+    },
+    {
+      "city": "London",
+      "summer_period": "2026-06-01..2026-08-31",
+      "winter_period": "2025-12-01..2026-02-28",
+      "roofs": 150,
+      "median_current_albedo": 0.137,
+      "coated_albedo": 0.75,
+      "heat_reference": {
+        "summer_max_ambient_c": 36.0,
+        "summer_year": 2026,
+        "historical_peak": "London reached 40 C in the July 2022 heatwave",
+        "text": "Hottest hour of summer 2026 at the London reference point: 36.0 C (Open-Meteo). London reached 40 C in the July 2022 heatwave; that figure is from 2022, not 2026."
+      },
+      "summer_surface_cooling_c": 16.48,
+      "summer_peak_surface_cooling_c": 38.62,
+      "heating_degree_hours": 19188.0,
+      "cooling_degree_hours": 2042.0,
+      "winter_heating_degree_days": 776.0,
+      "winter_irradiation_kwh_per_m2": 85.2,
+      "net_benefit_kwh_per_m2": 115.0,
+      "demand_weighted": {
+        "cooling_base_c": 24.0,
+        "heating_base_c": 15.5,
+        "cooling_benefit_kwh_per_m2": 180.1,
+        "heating_penalty_kwh_per_m2": 65.0,
+        "net_benefit_kwh_per_m2": 115.0,
+        "penalty_to_benefit_ratio": 0.361
+      },
+      "solar_only": {
+        "cooling_benefit_kwh_per_m2": 344.6,
+        "heating_penalty_kwh_per_m2": 52.2,
+        "net_benefit_kwh_per_m2": 292.4,
+        "penalty_to_benefit_ratio": 0.152
+      },
+      "typical_roof_net_kwh": {
+        "small": 9810.0,
+        "large": 403914.0
+      }
+    }
+  ],
+  "conclusion": "Primary method (demand_weighted): London's heating need is 2.1x Athens's (19188 vs 9270 heating degree-hours below 15.5 C), and the coating's net return there is lower: 115.0 vs 240.8 kWh/m2 of kept-out sunlight over the two seasons. Most of the gap comes from fewer hours that need cooling in London (cooling benefit 180.1 vs 322.9 kWh/m2). London's heating penalty is not larger than Athens's, because its winter sun is weaker: there is less sunlight for the coating to reflect. Hottest hour of summer 2026 at the London reference point: 36.0 C (Open-Meteo). London reached 40 C in the July 2022 heatwave; that figure is from 2022, not 2026.",
+  "assumptions": [
+    "The share of kept-out sunlight that would have reached the building interior depends on insulation and roof build-up; for a well-insulated roof it is small, so the kWh/m2 figures are an upper bound on building energy.",
+    "The summer gain is a real energy saving only in buildings that are actively cooled; in an unconditioned building it improves comfort but saves no energy.",
+    "Heating (15.5 C) and cooling (24.0 C) bases are standard degree-hour values, not fitted to these buildings.",
+    "An hour counts as heating or cooling demand when it crosses a base; the kept-out sunlight of that hour is counted in full, not scaled by how far the base is crossed."
+  ],
+  "method": "Sunlight no longer absorbed = hourly global horizontal irradiation x (coated albedo - current median albedo), counted as benefit in hours above 24.0 C (cooling degree-hours) and as penalty in hours below 15.5 C (heating degree-hours), over summer and winter.",
+  "caveat": "Rough estimate of sunlight absorbed at the roof surface, not of building energy use. See assumptions: the share that reaches the interior depends on insulation, and the summer figure only saves energy where the building is cooled."
+}

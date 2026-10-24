@@ -1,0 +1,27 @@
+{
+  "roof_id": "ATH-0205",
+  "status": "insufficient_data",
+  "measured_delta_c": -2.1,
+  "normalized_delta_c": -1.8,
+  "coverage_pct": 91.0,
+  "anomaly_flags": [
+    "extreme_wind_event"
+  ],
+  "force_majeure": true,
+  "weather": {
+    "ambient_c": 24.4,
+    "radiation_wm2": 310,
+    "wind_ms": 14.2,
+    "max_gust_ms": 27.6,
+    "precipitation_mm": 68.0,
+    "window_start": "2026-07-21T09:15:00Z",
+    "window_end": "2026-07-21T10:15:00+00:00"
+  },
+  "evidence_hash": "0x0a0639b716d78270378094a7ba8682dd938ce85f09fa5181aae36ea1d7ce3b15",
+  "device_signature": "0xd0f4367e8a4a44ccec9b8b49953b9f06955cb5ec50ad8d9e1f7bd3bcb48369a3724de88c3a3f8cc8196c66d8e4b8cf813c8ca6b7e818cd0562f3fa84f11ce733e9",
+  "measured_at": "2026-07-21T09:15:00Z",
+  "reason": "Ölçüm penceresinde maksimum rüzgar hamlesi (27.6 m/s) force majeure eşiğini (20.0 m/s) aşıyor. Fırtına koşulları termal ölçümü güvenilmez kıldığından sonuç insufficient_data olarak işaretlendi; kilitli fon bu turda hareket etmiyor.",
+  "data_source": "simulated",
+  "measurement_id": "11111111-1111-4111-8111-111111111111",
+  "measurement_phase": "durability"
+}

@@ -1,0 +1,19 @@
+# Every image is built from the repository root; keep the context small and free of secrets.
+.git
+**/node_modules
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/dist
+**/.env
+**/.env.*
+!**/.env.example
+contracts/artifacts
+contracts/cache
+contracts/typechain-types
+contracts/deployed*.json
+
+# Only the committed report snapshots are needed; data/cache alone holds ~470 MB of OSM
+# extracts, and the satellite CSVs need Earth Engine to rebuild anyway.
+data/*
+!data/snapshots

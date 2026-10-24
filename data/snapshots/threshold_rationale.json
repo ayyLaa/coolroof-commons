@@ -1,0 +1,28 @@
+{
+  "reference_city": "Athens",
+  "reference_threshold_c": -8.0,
+  "method": "expected drop = reference threshold x (city summer irradiation / reference summer irradiation); threshold = expected drop rounded toward zero to a whole degree. Summer irradiation is recovered from the climate comparison's solar_only cooling benefit.",
+  "caveat": "Rough derivation: the threshold scales only with summer irradiation and ignores ambient temperature, wind, cloud timing and roof build-up. A real programme must calibrate it with local before/after measurements on coated roofs.",
+  "climate_generated_at": "2026-10-21T15:21:24.055577+03:00",
+  "generated_at": "2026-10-22T16:03:47.427037+00:00",
+  "cities": [
+    {
+      "city": "Athens",
+      "summer_irradiation": 695.3,
+      "ratio_to_reference": 1.0,
+      "expected_delta_c": -8.0,
+      "derived_threshold_c": -8.0,
+      "chosen_threshold_c": -8.0,
+      "note": "Athens is the reference city; its threshold is the starting point. Rough derivation: the threshold scales only with summer irradiation and ignores ambient temperature, wind, cloud timing and roof build-up. A real programme must calibrate it with local before/after measurements on coated roofs."
+    },
+    {
+      "city": "London",
+      "summer_irradiation": 562.2,
+      "ratio_to_reference": 0.81,
+      "expected_delta_c": -6.47,
+      "derived_threshold_c": -6.0,
+      "chosen_threshold_c": -6.0,
+      "note": "The chosen -6.0 C matches the derived threshold. Rough derivation: the threshold scales only with summer irradiation and ignores ambient temperature, wind, cloud timing and roof build-up. A real programme must calibrate it with local before/after measurements on coated roofs."
+    }
+  ]
+}

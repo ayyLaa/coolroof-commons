@@ -1,0 +1,17 @@
+fastapi
+uvicorn[standard]
+sqlalchemy>=2
+geoalchemy2
+psycopg2-binary
+pydantic>=2
+httpx
+python-multipart
+alembic
+python-dotenv
+eth-account
+tzdata
+numpy
+scikit-learn
+opencv-python-headless
+pytest
+timezonefinder

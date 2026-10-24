@@ -1,0 +1,4 @@
+[
+  { "id": "athens", "name": "Athens", "country": "Greece", "center": [37.9838, 23.7275], "zoom": 16 },
+  { "id": "london", "name": "London", "country": "United Kingdom", "center": [51.5074, -0.1278], "zoom": 16 }
+]

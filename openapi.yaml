@@ -1,0 +1,2378 @@
+openapi: 3.1.0
+info:
+  title: CoolRoof Commons API
+  description: >
+    Serin çatı projeleri için sonuca dayalı doğrulama ve ödeme API'si.
+    Pilot şehirler: Atina ve Londra.
+  version: 0.1.0
+servers:
+  - url: http://localhost:8000
+
+tags:
+  - name: roofs
+    description: Aday çatıların keşfi ve detayları
+  - name: measurements
+    description: Sıcaklık ölçümleri ve fotoğraf kanıtı
+  - name: verification
+    description: Doğrulama sonucu
+  - name: weather
+    description: Normalizasyon için hava durumu geçmişi
+  - name: contracts
+    description: >-
+      Akıllı kontrat dilim (tranche) durumu ve oracle'ın aktardığı zincir eventleri. Dilim yapısı
+      contracts/contracts/CoolRoofEscrow.sol ile aynıdır, QUALITY 60 / DURABILITY 30 /
+      FORCE_MAJEURE_RESERVE 10.
+  - name: demo
+    description: >-
+      Demo senaryolarını başa saran yardımcı uçlar. Her demo turu zincirde kendi projelerini
+      fonlar ("ATH-0142#3"), çünkü bir dilim proje başına bir kez ödenir; tur 0 eksiz orijinaldir.
+  - name: oracle
+    description: >-
+      Oracle servisi (oracle/src/server.ts), backend'den ayrı bir süreç ve porttur
+      (varsayılan http://localhost:4020).
+  - name: evidence
+    description: >-
+      Gerçek uydu kanıtı, iklim karşılaştırması ve yöntem metrikleri. Her yanıt data_source alanıyla
+      measured / simulated / third_party olarak etiketlenir.
+
+paths:
+  /roofs:
+    get:
+      tags: [roofs]
+      summary: Aday çatı listesi
+      operationId: listRoofs
+      parameters:
+        - name: city
+          in: query
+          required: false
+          schema: { type: string }
+          example: Athens
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+          example: 50
+        - name: offset
+          in: query
+          required: false
+          description: >-
+            Atlanacak kayıt sayısı. limit en fazla 200 olduğu için büyük şehirler sayfa sayfa
+            çekilir (Atina 576 çatı); sıra priority_score azalan, sonra roof_id, sayfalar arasında sabittir.
+          schema: { type: integer, minimum: 0, default: 0 }
+          example: 200
+        - name: min_score
+          in: query
+          required: false
+          description: priority_score alt sınırı
+          schema: { type: number }
+          example: 0.5
+        - name: include_geometry
+          in: query
+          required: false
+          description: >-
+            true ise her çatının geometry alanı GeoJSON poligonuyla dolar, aksi halde null döner.
+            Poligon her kaydı iki kattan fazla büyüttüğü için listede isteğe bağlıdır; detayda
+            her zaman döner.
+          schema: { type: boolean, default: false }
+          example: true
+      responses:
+        "200":
+          description: Aday çatı listesi
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RoofSummary"
+              example:
+                - roof_id: ATH-0142
+                  city: Athens
+                  roof_class: small
+                  lat: 37.9838
+                  lon: 23.7275
+                  area_m2: 640.5
+                  albedo: 0.18
+                  surface_temp_c: 52.3
+                  priority_score: 0.87
+                  estimated_cost_eur: 7686.0
+                  status: candidate
+                  data_source: measured
+                  geometry:
+                    type: Polygon
+                    coordinates:
+                      - - [23.7272, 37.9836]
+                        - [23.7278, 37.9836]
+                        - [23.7278, 37.9840]
+                        - [23.7272, 37.9840]
+                        - [23.7272, 37.9836]
+                - roof_id: ATH-0087
+                  city: Athens
+                  roof_class: small
+                  lat: 37.9755
+                  lon: 23.7348
+                  area_m2: 410.0
+                  albedo: 0.22
+                  surface_temp_c: 48.9
+                  priority_score: 0.74
+                  estimated_cost_eur: 4920.0
+                  status: measuring
+                  data_source: simulated
+                  geometry: null
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /roofs/{roof_id}:
+    get:
+      tags: [roofs]
+      summary: Tek çatı detayı ve geçmiş ölçümler
+      operationId: getRoof
+      parameters:
+        - $ref: "#/components/parameters/RoofId"
+      responses:
+        "200":
+          description: Çatı detayı
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoofDetail"
+              example:
+                roof_id: ATH-0142
+                city: Athens
+                roof_class: small
+                lat: 37.9838
+                lon: 23.7275
+                area_m2: 640.5
+                albedo: 0.18
+                surface_temp_c: 52.3
+                priority_score: 0.87
+                estimated_cost_eur: 7686.0
+                status: verified
+                data_source: simulated
+                geometry:
+                  type: Polygon
+                  coordinates:
+                    - - [23.7272, 37.9836]
+                      - [23.7278, 37.9836]
+                      - [23.7278, 37.9840]
+                      - [23.7272, 37.9840]
+                      - [23.7272, 37.9836]
+                measurement_history:
+                  - measurement_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                    phase: before
+                    measured_at: "2026-06-01T11:00:00Z"
+                    normalized_delta_c: null
+                    anomaly_flags: []
+                    data_source: simulated
+                  - measurement_id: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+                    phase: after
+                    measured_at: "2026-07-14T12:05:00Z"
+                    normalized_delta_c: -9.1
+                    anomaly_flags: []
+                    data_source: simulated
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /roofs/{roof_id}/series:
+    get:
+      tags: [roofs]
+      summary: Çatı için simüle önce/sonra yüzey sıcaklığı serisi
+      description: >-
+        Gerçek Open-Meteo saatlik hava verisiyle sürülen fiziksel modelin (enerji
+        dengesi) çıktısı. Hava verisi gerçektir, yüzey sıcaklıkları değildir; yanıt ve
+        her okuma her zaman data_source = simulated taşır. Oturumlar yerel saatle
+        13:00'te başlar, 15 dakika sürer, 30 saniyede bir okuma içerir.
+      operationId: getSimulatedSeries
+      parameters:
+        - $ref: "#/components/parameters/RoofId"
+        - name: before
+          in: query
+          required: false
+          schema: { type: string, format: date, default: "2026-06-15" }
+          example: "2026-07-01"
+        - name: after
+          in: query
+          required: false
+          schema: { type: string, format: date, default: "2026-07-15" }
+          example: "2026-07-07"
+      responses:
+        "200":
+          description: Simüle seri
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimulatedSeries"
+              example:
+                roof_id: ATH-1000
+                data_source: simulated
+                model: "energy balance (1 - albedo) * radiation = h(wind) * (T_surface - T_ambient), ml/physical_model.py"
+                weather_source: open-meteo hourly weather (real)
+                before:
+                  start: "2026-07-01T10:00:00Z"
+                  albedo: 0.271
+                  readings:
+                    - timestamp: "2026-07-01T10:00:00Z"
+                      surface_temp_c: 59.87
+                      data_source: simulated
+                after:
+                  start: "2026-07-07T10:00:00Z"
+                  albedo: 0.75
+                  readings:
+                    - timestamp: "2026-07-07T10:15:00Z"
+                      surface_temp_c: 41.04
+                      data_source: simulated
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/WeatherUnavailable"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /measurements:
+    post:
+      security:
+        - OperatorApiKey: []
+      tags: [measurements]
+      summary: Yeni bir sıcaklık ölçümü kaydet
+      operationId: createMeasurement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MeasurementCreateRequest"
+            example:
+              roof_id: ATH-0142
+              phase: after
+              device_id: DEV-0391
+              readings:
+                - timestamp: "2026-07-14T12:00:00Z"
+                  surface_temp_c: 41.8
+                - timestamp: "2026-07-14T12:05:00Z"
+                  surface_temp_c: 42.0
+      responses:
+        "201":
+          description: Ölçüm kaydedildi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeasurementCreateResponse"
+              example:
+                measurement_id: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+                normalized_delta_c: -9.1
+                anomaly_flags: []
+                data_source: simulated
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/MeasurementConflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /measurements/{measurement_id}/photo:
+    post:
+      security:
+        - OperatorApiKey: []
+      tags: [measurements]
+      summary: Ölçüm için kapsama fotoğrafı yükle
+      operationId: uploadMeasurementPhoto
+      parameters:
+        - name: measurement_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+          example: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Çatı kaplamasının tek bir fotoğrafı.
+      responses:
+        "200":
+          description: Kapsama analizi tamamlandı
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PhotoUploadResponse"
+              example:
+                coverage_pct: 93.5
+                mask_preview_url: https://cdn.coolroof-commons.local/masks/7c9e6679.png
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          description: Dosya desteklenen bir fotoğraf türü değil ya da okunamıyor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                code: invalid_photo
+                message: "Unsupported photo type '.txt', use one of ('.jpg', '.jpeg', '.png')."
+
+  /verification/{roof_id}:
+    get:
+      tags: [verification]
+      summary: Çatı için güncel doğrulama sonucu
+      operationId: getVerification
+      parameters:
+        - $ref: "#/components/parameters/RoofId"
+      responses:
+        "200":
+          description: Doğrulama sonucu
+          content:
+            application/json:
+              schema:
+                $ref: "schema/verification.json"
+              example:
+                roof_id: ATH-0142
+                measurement_id: "11111111-1111-4111-8111-111111111111"
+                measurement_phase: after
+                status: approved
+                measured_delta_c: -9.8
+                normalized_delta_c: -9.1
+                coverage_pct: 93.5
+                anomaly_flags: []
+                force_majeure: false
+                weather:
+                  ambient_c: 31.2
+                  radiation_wm2: 820
+                  wind_ms: 3.4
+                  max_gust_ms: 7.1
+                  precipitation_mm: 0
+                  window_start: "2026-07-14T11:00:00Z"
+                  window_end: "2026-07-14T13:00:00Z"
+                evidence_hash: "0xe45b988096d509a561147d6c9c9a70f7d38d16f6e38925c8d0354c6a65279261"
+                device_signature: "0x003970c6fe243ddc01eee2d95d19de0e790b568f57c0d0ad05528cf15381609d09be23b11f58efc37b275017d5ae233211304a75ff7cd8549efe21f07ae74f107a"
+                measured_at: "2026-07-14T12:05:00Z"
+                reason: >-
+                  Normalize edilmiş sıcaklık düşüşü (-9.1°C) eşik değerin (-8.0°C) altında ve
+                  kaplama kapsamı (%93.5) gerekli eşiği (%85) aşıyor. Anomali tespit edilmedi,
+                  fon serbest bırakılabilir.
+                data_source: simulated
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/MeasurementConflict"
+
+  /weather/{roof_id}:
+    get:
+      tags: [weather]
+      summary: Çatı konumu için saatlik hava durumu geçmişi
+      description: >-
+        Saatlik hava verisi. Open-Meteo'dan alınan noktalar data_source = third_party,
+        demo seed'in ürettiği noktalar data_source = simulated taşır; aynı yanıtta ikisi
+        birden bulunabilir.
+      operationId: getWeatherHistory
+      parameters:
+        - $ref: "#/components/parameters/RoofId"
+        - name: start
+          in: query
+          required: true
+          schema: { type: string, format: date }
+          example: "2026-07-13"
+        - name: end
+          in: query
+          required: true
+          schema: { type: string, format: date }
+          example: "2026-07-14"
+      responses:
+        "200":
+          description: Saatlik hava durumu dizisi
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WeatherPoint"
+              example:
+                - timestamp: "2026-07-14T11:00:00Z"
+                  ambient_c: 30.5
+                  radiation_wm2: 790
+                  wind_ms: 3.1
+                  max_gust_ms: 6.4
+                  precipitation_mm: 0
+                  data_source: third_party
+                - timestamp: "2026-07-14T12:00:00Z"
+                  ambient_c: 31.2
+                  radiation_wm2: 820
+                  wind_ms: 3.4
+                  max_gust_ms: 7.1
+                  precipitation_mm: 0
+                  data_source: third_party
+                - timestamp: "2026-07-15T08:00:00Z"
+                  ambient_c: 34.0
+                  radiation_wm2: 850
+                  wind_ms: 3.0
+                  max_gust_ms: 6.0
+                  precipitation_mm: 0
+                  data_source: simulated
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/WeatherUnavailable"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /contracts/{roof_id}:
+    get:
+      tags: [contracts]
+      summary: Akıllı kontrat dilim (tranche) durumu
+      operationId: getContractStatus
+      parameters:
+        - $ref: "#/components/parameters/RoofId"
+      responses:
+        "200":
+          description: Dilim durumları
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContractStatus"
+              example:
+                roof_id: ATH-0355
+                contract_address: "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+                sponsor: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+                contractor: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+                total_amount_wei: "1000000000000000000"
+                thresholds:
+                  min_normalized_delta_c: -8.0
+                  min_coverage_pct: 85
+                  force_majeure_gust_ms: 20.0
+                  force_majeure_precip_mm: 50.0
+                  durability_check_days: 180
+                  winter_penalty_check: false
+                  rationale: >-
+                    Reference city: -8.0 °C is the design requirement for Athens summer sun
+                    (695 kWh/m²); other cities are scaled from it. Not yet calibrated with local
+                    measurements.
+                tranches:
+                  - name: QUALITY
+                    pct: 60
+                    amount_wei: "600000000000000000"
+                    status: released
+                    tx_hash: "0x9b1deb4d3b7d4bad9bdd2b0d7b3dcb6d5f6c7b8a9d0e1f2a3b4c5d6e7f8a9b0c"
+                    released_at: "2026-07-26T08:00:00Z"
+                  - name: FORCE_MAJEURE_RESERVE
+                    pct: 10
+                    amount_wei: "100000000000000000"
+                    status: released
+                    tx_hash: "0xa2c3e4f5061728394a5b6c7d8e9f0a1b2c3d4e5f60718293a4b5c6d7e8f90a1b"
+                    released_at: "2027-01-22T09:00:00Z"
+                  - name: DURABILITY
+                    pct: 30
+                    amount_wei: "300000000000000000"
+                    status: held
+                    tx_hash: null
+                    released_at: null
+                events:
+                  - roof_id: ATH-0355
+                    event_name: ForceMajeureApplied
+                    tranche: null
+                    amount_wei: null
+                    tx_hash: "0xa2c3e4f5061728394a5b6c7d8e9f0a1b2c3d4e5f60718293a4b5c6d7e8f90a1b"
+                    block_number: 18234567
+                    reason: gusts 24.0 m/s, 68.0 mm precipitation
+                    occurred_at: "2027-01-22T09:00:00Z"
+                    round: 3
+                  - roof_id: ATH-0355
+                    event_name: PaymentHeld
+                    tranche: DURABILITY
+                    amount_wei: null
+                    tx_hash: "0xa2c3e4f5061728394a5b6c7d8e9f0a1b2c3d4e5f60718293a4b5c6d7e8f90a1b"
+                    block_number: 18234567
+                    reason: Durability suspended by force majeure
+                    occurred_at: "2027-01-22T09:00:00Z"
+                    round: 3
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /contracts/{roof_id}/events:
+    post:
+      security:
+        - EventApiKey: []
+      tags: [contracts]
+      summary: Oracle'ın aktardığı bir zincir eventini kaydeder
+      description: >-
+        Oracle, CoolRoofEscrow'un TrancheReleased, PaymentHeld, ForceMajeureApplied ve
+        UnreleasedReclaimed eventlerini buraya gönderir. Event contract_events tablosuna yazılır (GET
+        /contracts/{roof_id} events listesi) ve dilimin durumu güncellenir: TrancheReleased
+        dilimi released yapar, tx_hash ve released_at'i yazar; PaymentHeld held yapar.
+        ForceMajeureApplied dilim durumunu değiştirmez, kontrat aynı işlemde ayrıca
+        PaymentHeld(DURABILITY) ve TrancheReleased(FORCE_MAJEURE_RESERVE) yayar.
+        UnreleasedReclaimed da dilim durumunu değiştirmez: ödenmemiş dilimler sponsora
+        döner ama released olmaz; event zaman çizelgesine yazılır. İdempotenttir:
+        aynı roof_id, tx_hash, event_name ve tranche ile tekrar gönderilen event yeniden
+        kaydedilmez, kayıtlı olan döner. round, eventi yayan zincir projesinin demo turudur
+        ("ATH-0142#3" için 3); oracle roof_id'den eki atar ve turu burada gönderir. Backend'in
+        güncel turu dışındaki eventler 409 stale_round ile reddedilir, böylece listener'ın
+        açılıştaki geçmiş taraması eski turların durumunu güncel tura yazamaz.
+      operationId: recordContractEvent
+      parameters:
+        - $ref: "#/components/parameters/RoofId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContractEventCreate"
+            example:
+              event_name: TrancheReleased
+              tranche: QUALITY
+              amount_wei: "600000000000000000"
+              tx_hash: "0x9b1deb4d3b7d4bad9bdd2b0d7b3dcb6d5f6c7b8a9d0e1f2a3b4c5d6e7f8a9b0c"
+              block_number: 18234012
+              reason: null
+              occurred_at: "2026-07-26T08:00:00Z"
+              round: 3
+      responses:
+        "201":
+          description: Kaydedilen (veya daha önce kaydedilmiş) event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContractEventRecord"
+              example:
+                roof_id: ATH-0142
+                event_name: TrancheReleased
+                tranche: QUALITY
+                amount_wei: "600000000000000000"
+                tx_hash: "0x9b1deb4d3b7d4bad9bdd2b0d7b3dcb6d5f6c7b8a9d0e1f2a3b4c5d6e7f8a9b0c"
+                block_number: 18234012
+                reason: null
+                occurred_at: "2026-07-26T08:00:00Z"
+                round: 3
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/StaleRound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /demo/reset:
+    post:
+      security:
+        - OperatorApiKey: []
+      tags: [demo]
+      summary: Yeni bir demo turu açar ve üç demo çatısını seed durumuna döndürür
+      description: >-
+        Sadece ATH-0142, ATH-0287 ve ATH-0355'e dokunur. Bir sonraki demo turunu açar ve
+        numarasını round alanında döner. Önceki turun zincir yansıması olan contract_events
+        ve contract_states kayıtlarını siler; verifications, measurements ve simulated hava
+        kayıtlarını siler, yüklenmiş fotoğraf dosyalarını kaldırır ve seed değerlerini geri
+        yazar. Dilimler pending ve tx_hash'siz yeniden eklenir; sonra yalnızca oracle'ın
+        aktardığı yeni turun eventleriyle değişir. Ölçülmüş çatılar ve third_party hava verisi
+        korunur. Turu zincirde FONLAMAZ: projeleri scripts/demo-round.sh (setup-demo görevi)
+        oluşturur. scripts/seed.py aynı geri yazmayı yapar ama tur açmaz.
+      operationId: resetDemo
+      responses:
+        "200":
+          description: Silinen ve geri yazılan satır sayıları
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DemoResetResponse"
+              example:
+                round: 3
+                roof_ids: [ATH-0142, ATH-0287, ATH-0355]
+                deleted:
+                  contract_events: 4
+                  contract_states: 9
+                  verifications: 5
+                  measurements: 8
+                  weather_records: 7
+                  photo_files: 2
+                restored:
+                  roofs: 3
+                  measurements: 7
+                  verifications: 4
+                  weather_records: 7
+                  contract_states: 9
+
+  /demo/round:
+    get:
+      tags: [demo]
+      summary: Backend'in yansıttığı güncel demo turu
+      description: >-
+        Oracle, gövdesinde round olmayan bir POST /submit'i bu tura gönderir; arayüz zinciri
+        bu turun projesinden ("ATH-0142#3") okur. Henüz tur açılmadıysa 0 döner.
+      operationId: getDemoRound
+      responses:
+        "200":
+          description: Güncel tur
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DemoRoundStatus"
+              example:
+                round: 3
+
+  /health:
+    servers:
+      - url: http://localhost:4020
+        description: Oracle servisi
+    get:
+      tags: [oracle]
+      summary: Oracle sağlığı, cüzdanlar ve kalan demo turu bütçesi
+      description: >-
+        Oracle cüzdanının bakiyesi (balance), güncel gas fiyatı ve sponsor ile oracle
+        cüzdanlarının her biri için bir demo turunun maliyeti (round_cost) ve o fiyatla kaç
+        tur daha ödeyebildiği (rounds_left). Sponsor, escrow'un owner() adresidir. Bakiyeler
+        ve maliyetler POL cinsinden ondalık dizgilerdir.
+      operationId: getOracleHealth
+      responses:
+        "200":
+          description: Oracle ve cüzdan durumu
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OracleHealth"
+              example:
+                ok: true
+                network: local
+                chain_id: 31337
+                contract_address: "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+                oracle_address: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+                balance: "9999.99"
+                gas_price_gwei: "30.0"
+                sponsor:
+                  address: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+                  balance: "0.054"
+                  round_cost: "0.02577"
+                  rounds_left: 2
+                oracle:
+                  address: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+                  balance: "0.0047"
+                  round_cost: "0.0234"
+                  rounds_left: 0
+        "502":
+          description: RPC'ye ulaşılamadı; cüzdanlar okunamadı.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                code: rpc_failed
+                message: Cannot read the wallet balances. Check AMOY_RPC_URL, CONTRACT_ADDRESS and connectivity.
+
+  /evidence/satellite:
+    get:
+      tags: [evidence]
+      summary: Gerçek uydu kanıtı, koyu ve açık çatıların ölçülmüş yüzey sıcaklığı
+      description: >-
+        Landsat 8/9 C2L2 ST_B10 ile ölçülmüş yüzey sıcaklıklarının albedo alt ve üst
+        çeyreklerine göre karşılaştırması. Kontrollü bir deney değil, gözlemsel bir
+        karşılaştırmadır. data_source her zaman measured.
+      operationId: getSatelliteEvidence
+      responses:
+        "200":
+          description: Uydu kanıtı
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SatelliteEvidence"
+              example:
+                source: measured
+                data_source: measured
+                instrument: Landsat 8/9 C2L2 ST_B10
+                instrument_resolution_m: 100
+                period: Athens 2026-06-01..2026-08-31; London 2026-06-01..2026-08-31
+                statistic: per-roof zonal mean of the cloud-masked seasonal median LST, deg C
+                case_id: athens_small_roofs
+                low_albedo_group: &low_group
+                  n: 79
+                  albedo_range: [0.174, 0.25]
+                  mean_c: 41.66
+                  median_c: 41.65
+                  std_c: 1.25
+                  mean_area_m2: 182.8
+                  centroid: [37.95617, 23.75832]
+                high_albedo_group: &high_group
+                  n: 75
+                  albedo_range: [0.312, 0.454]
+                  mean_c: 41.45
+                  median_c: 41.38
+                  std_c: 0.98
+                  mean_area_m2: 178.7
+                  centroid: [37.95616, 23.75889]
+                delta_c: -0.21
+                p_value: 0.25
+                significant: false
+                caveat: Observational comparison between different buildings, not a controlled before/after experiment.
+                resolution_caveat: &resolution_caveat >-
+                  Landsat 8/9 C2L2 ST_B10 resolves surface temperature at 100 m, i.e. 10,000 m2
+                  per pixel; the mean roof here is 172 m2, 1.7% of one pixel.
+                n_tests: 8
+                bonferroni_alpha: 0.00625
+                multiple_comparison_note: >-
+                  Each case is a separate t-test, so with 8 tests at alpha 0.05 about 0.4 raw
+                  'significant' result is expected by chance alone; only results that survive
+                  Bonferroni or Benjamini-Hochberg correction count as findings.
+                cases:
+                  - &athens_small_case
+                    case_id: athens_small_roofs
+                    city: Athens
+                    period: 2026-06-01..2026-08-31
+                    roof_class: small
+                    instrument: Landsat 8/9 C2L2 ST_B10
+                    instrument_resolution_m: 100
+                    pixel_area_m2: 10000
+                    mean_roof_area_m2: 171.9
+                    roof_to_pixel_area_ratio: 0.017
+                    n_low: 79
+                    n_high: 75
+                    low_albedo_group: *low_group
+                    high_albedo_group: *high_group
+                    delta_c: -0.21
+                    t_statistic: -1.154
+                    p_value: 0.25
+                    significant: false
+                    significance_level: 0.05
+                    test: Welch two-sample t-test (high vs low albedo)
+                    confounders:
+                      area_difference_m2: -4.1
+                      centroid_distance_m: 50.0
+                      height: "not available: OSM footprints carry no reliable height for these roofs"
+                      note: >-
+                        Groups are different buildings; area, height, construction, shading and
+                        location are not controlled, so delta_c is an association, not an effect.
+                    significant_raw: false
+                    significant_bonferroni: false
+                    significant_fdr: false
+                    p_value_bonferroni: 1.0
+                    q_value_fdr: 0.667
+                    interpretation: >-
+                      Roof is far smaller than one thermal pixel, so the measurement describes
+                      the surroundings, not the roof.
+                    resolution_caveat: *resolution_caveat
+                large_roof_cleaning:
+                  rule: >-
+                    Excluded: building in stadium, grandstand, garage, garages, parking, carport;
+                    any leisure=* tag; amenity=parking; building=yes outside a landuse=industrial area.
+                  cities:
+                    athens:
+                      n_before: 273
+                      n_excluded: 5
+                      n_after: 268
+                      excluded:
+                        - roof_id: ATH-2005
+                          osm_id: relation/7317397
+                          reason: building=garage
+                    london:
+                      n_before: 75
+                      n_excluded: 0
+                      n_after: 75
+                      excluded: []
+                  significance_changed: false
+                  changed_case_ids: []
+                  cases_before_cleaning:
+                    - *athens_small_case
+                conclusion:
+                  n_cases_tested: 8
+                  n_significant_raw: 1
+                  n_significant_bonferroni: 0
+                  n_significant_fdr: 0
+                  raw_significant_case_ids: [london_large_roofs]
+                  surviving_case_ids: []
+                  tests_summary: >-
+                    8 cases were tested; 1 of them reached raw p < 0.05 (london_large_roofs
+                    p=0.023). After Bonferroni correction (alpha = 0.05/8 = 0.00625) 0 remain, and
+                    after Benjamini-Hochberg FDR correction 0 remain.
+                  resolution_finding: >-
+                    The roof-to-pixel area ratio rose from 0.016 (london_small_roofs) to 0.915
+                    (london_large_roofs_ecostress, p=0.18), yet the signal did not strengthen: no
+                    case is significant after correction. Resolution is therefore not the only problem.
+                  untested_explanations:
+                    - "Emissivity: bright bare-metal roofs have a low thermal emissivity, so the satellite retrieval misreads their temperature."
+                    - "Location: the dark and bright groups are different buildings in different places."
+                  verdict: Satellite data is not sufficient for roof-level verification; it is sufficient for targeting.
+                  text: >-
+                    8 cases were tested; 1 of them reached raw p < 0.05. After Bonferroni
+                    correction 0 remain, and after Benjamini-Hochberg FDR correction 0 remain.
+                    Satellite data is not sufficient for roof-level verification; it is
+                    sufficient for targeting.
+        "404":
+          $ref: "#/components/responses/NotGenerated"
+
+  /evidence/climate-comparison:
+    get:
+      tags: [evidence]
+      summary: Şehirler arası mevsimsel enerji dengesi karşılaştırması
+      description: >-
+        Kaplamanın yansıttığı güneş ışınımının yazın soğutma kazancı, kışın ısıtma kaybı
+        olarak kaba bir fiziksel tahmini. Gerçek Open-Meteo saatlik hava verisiyle
+        hesaplanır ama sonuç ölçüm değil modeldir; data_source her zaman simulated.
+        Birincil yöntem demand_weighted (yalnızca ısıtma/soğutma ihtiyacı olan saatler
+        sayılır), ikincil yöntem solar_only karşılaştırma için verilir.
+      operationId: getClimateComparison
+      responses:
+        "200":
+          description: İklim karşılaştırması
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClimateComparison"
+              example:
+                data_source: simulated
+                primary_method: demand_weighted
+                secondary_method: solar_only
+                secondary_method_note: >-
+                  solar_only counts every hour of winter sun as a heating penalty, whether or
+                  not the building needs heat then. Same data, opposite conclusions.
+                methods:
+                  demand_weighted: >-
+                    Sunlight no longer absorbed = hourly global horizontal irradiation x (coated
+                    albedo - current median albedo), counted as benefit in hours above 24.0 C
+                    (cooling degree-hours) and as penalty in hours below 15.5 C (heating
+                    degree-hours), over summer and winter.
+                  solar_only: >-
+                    The same kept-out sunlight with all summer hours as benefit and all winter
+                    hours as penalty, regardless of heating or cooling demand.
+                cities:
+                  - city: Athens
+                    summer_period: 2026-06-01..2026-08-31
+                    winter_period: 2025-12-01..2026-02-28
+                    roofs: 573
+                    median_current_albedo: 0.279
+                    coated_albedo: 0.75
+                    summer_surface_cooling_c: 16.35
+                    summer_peak_surface_cooling_c: 36.47
+                    heating_degree_hours: 9270.0
+                    cooling_degree_hours: 10093.0
+                    winter_heating_degree_days: 386.0
+                    winter_irradiation_kwh_per_m2: 237.1
+                    net_benefit_kwh_per_m2: 240.8
+                    heat_reference:
+                      summer_max_ambient_c: 39.0
+                      summer_year: 2026
+                      historical_peak: null
+                      text: "Hottest hour of summer 2026 at the Athens reference point: 39.0 C (Open-Meteo)."
+                    demand_weighted:
+                      cooling_benefit_kwh_per_m2: 322.9
+                      heating_penalty_kwh_per_m2: 82.1
+                      net_benefit_kwh_per_m2: 240.8
+                      penalty_to_benefit_ratio: 0.254
+                      cooling_base_c: 24.0
+                      heating_base_c: 15.5
+                    solar_only:
+                      cooling_benefit_kwh_per_m2: 327.5
+                      heating_penalty_kwh_per_m2: 111.7
+                      net_benefit_kwh_per_m2: 215.8
+                      penalty_to_benefit_ratio: 0.341
+                    typical_roof_net_kwh: { small: 33315.0, large: 717849.0 }
+                  - city: London
+                    summer_period: 2026-06-01..2026-08-31
+                    winter_period: 2025-12-01..2026-02-28
+                    roofs: 150
+                    median_current_albedo: 0.137
+                    coated_albedo: 0.75
+                    summer_surface_cooling_c: 16.48
+                    summer_peak_surface_cooling_c: 38.62
+                    heating_degree_hours: 19188.0
+                    cooling_degree_hours: 2042.0
+                    winter_heating_degree_days: 776.0
+                    winter_irradiation_kwh_per_m2: 85.2
+                    net_benefit_kwh_per_m2: 115.0
+                    heat_reference:
+                      summer_max_ambient_c: 36.0
+                      summer_year: 2026
+                      historical_peak: London reached 40 C in the July 2022 heatwave
+                      text: >-
+                        Hottest hour of summer 2026 at the London reference point: 36.0 C
+                        (Open-Meteo). London reached 40 C in the July 2022 heatwave; that
+                        figure is from 2022, not 2026.
+                    demand_weighted:
+                      cooling_benefit_kwh_per_m2: 180.1
+                      heating_penalty_kwh_per_m2: 65.0
+                      net_benefit_kwh_per_m2: 115.0
+                      penalty_to_benefit_ratio: 0.361
+                      cooling_base_c: 24.0
+                      heating_base_c: 15.5
+                    solar_only:
+                      cooling_benefit_kwh_per_m2: 344.6
+                      heating_penalty_kwh_per_m2: 52.2
+                      net_benefit_kwh_per_m2: 292.4
+                      penalty_to_benefit_ratio: 0.152
+                    typical_roof_net_kwh: { small: 9810.0, large: 403914.0 }
+                conclusion: >-
+                  Primary method (demand_weighted): London's heating need is 2.1x Athens's,
+                  and the coating's net return there is lower: 115.0 vs 240.8 kWh/m2.
+                assumptions:
+                  - The summer gain is a real energy saving only in buildings that are actively cooled.
+                  - Heating (15.5 C) and cooling (24.0 C) bases are standard degree-hour values, not fitted to these buildings.
+                method: >-
+                  Sunlight no longer absorbed = hourly global horizontal irradiation x (coated
+                  albedo - current median albedo), counted as benefit above 24.0 C and as
+                  penalty below 15.5 C.
+                caveat: Rough estimate of sunlight absorbed at the roof surface, not of building energy use.
+                weather_source: open-meteo hourly weather (real, third_party)
+                generated_at: "2026-10-21T15:21:24.055577+03:00"
+        "404":
+          $ref: "#/components/responses/NotGenerated"
+
+  /metrics:
+    get:
+      tags: [evidence]
+      summary: Yöntem metrikleri (anomali tespiti ve normalizasyon kararlılığı)
+      description: >-
+        Simüle veri üzerinde hesaplanır: anomali tespiti demo seed ve enjekte edilmiş
+        anomalilerle, normalizasyon tablosu gerçek hava verisiyle sürülen fiziksel model
+        sıcaklıklarıyla. data_source her zaman simulated.
+      operationId: getMetrics
+      responses:
+        "200":
+          description: Metrik raporu
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MetricsReport"
+              example:
+                data_source: simulated
+                generated_at: "2026-10-21T12:00:00+00:00"
+                anomaly_detection:
+                  data_source: simulated
+                  sessions: 387
+                  anomalies: 181
+                  rules:
+                    true_positives: 142
+                    false_positives: 0
+                    false_negatives: 39
+                    precision: 1.0
+                    recall: 0.785
+                  isolation_forest:
+                    true_positives: 26
+                    false_positives: 2
+                    false_negatives: 155
+                    precision: 0.929
+                    recall: 0.144
+                  combined:
+                    true_positives: 162
+                    false_positives: 2
+                    false_negatives: 19
+                    precision: 0.988
+                    recall: 0.895
+                  detection_rate_by_kind:
+                    implausible_cooling:
+                      n: 20
+                      rules: 0.0
+                      isolation_forest: 0.95
+                normalization:
+                  data_source: simulated
+                  weather_source: open-meteo (real hourly weather)
+                  weather_roof_id: ATH-1000
+                  albedo_before: 0.271
+                  albedo_after: 0.75
+                  before_measured_at: "2026-07-01T13:00:00+03:00"
+                  true_delta_at_standard_c: -21.1
+                  raw_delta:
+                    mean_c: -18.18
+                    std_c: 4.07
+                    min_c: -27.98
+                    max_c: -8.88
+                    range_c: 19.1
+                  normalized_delta:
+                    mean_c: -20.01
+                    std_c: 1.26
+                    min_c: -21.92
+                    max_c: -18.05
+                    range_c: 3.87
+                  spread_reduction_factor: 3.2
+                  scenarios:
+                    - after_measured_at: "2026-07-01T09:00:00+03:00"
+                      ambient_c: 30.0
+                      radiation_wm2: 368.0
+                      wind_ms: 0.65
+                      raw_delta_c: -21.89
+                      normalized_delta_c: -18.09
+        "404":
+          $ref: "#/components/responses/NotGenerated"
+
+components:
+  securitySchemes:
+    OperatorApiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Operator key required when configured; mandatory outside local mode.
+    EventApiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Separate key used only by the oracle event relay.
+  parameters:
+    RoofId:
+      name: roof_id
+      in: path
+      required: true
+      schema:
+        $ref: "schema/verification.json#/properties/roof_id"
+      example: ATH-0142
+
+  responses:
+    NotFound:
+      description: Kayıt bulunamadı
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            code: not_found
+            message: "ATH-9999 için kayıt bulunamadı."
+    ValidationError:
+      description: İstek gövdesi şema ile uyuşmuyor
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            code: validation_error
+            message: "readings dizisi boş olamaz."
+    MeasurementConflict:
+      description: >-
+        İstek, çatının mevcut ölçüm durumuyla çelişiyor. code alanı iki durumu ayırır.
+        missing_measurement: karşılaştırma için gereken ölçüm yok (ör. before ölçümü
+        olmadan after gönderildi, ya da doğrulama için before/after ölçümü eksik).
+        mixed_data_source: measured ve simulated değerler karşılaştırılmaya çalışıldı
+        (ör. measured bir after ölçümü, simulated bir before ölçümüyle). Böyle bir fark
+        anlamsızdır ve simüle değerlerin gerçekmiş gibi geçmesine izin verirdi, bu yüzden
+        reddedilir.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            missing_measurement:
+              summary: Gereken ölçüm yok
+              value:
+                code: missing_measurement
+                message: "ATH-1002 has no 'before' measurement yet."
+            mixed_data_source:
+              summary: measured ve simulated karıştırıldı
+              value:
+                code: mixed_data_source
+                message: "Cannot compare a measured measurement with the simulated before measurement 3fa85f64-5717-4562-b3fc-2c963f66afa6."
+    StaleRound:
+      description: >-
+        Event, backend'in yansıttığı demo turundan başka bir tura ait. Listener'ın açılıştaki
+        geçmiş taramasında beklenir; oracle bunları atlandı olarak kaydeder.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            code: stale_round
+            message: Event is from demo round 1; the backend mirrors round 3.
+    WeatherUnavailable:
+      description: Hava verisi ne veritabanında ne Open-Meteo'da bulunabildi.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            code: weather_unavailable
+            message: "Open-Meteo request failed."
+    NotGenerated:
+      description: İstenen rapor henüz scripts/ tarafından üretilmedi.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            code: not_generated
+            message: "metrics.json has not been generated; run scripts/metrics.py."
+
+  schemas:
+    Error:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: >-
+            Makine tarafından okunur hata kodu, ör. not_found, validation_error,
+            missing_measurement, mixed_data_source, weather_unavailable, not_generated.
+        message: { type: string }
+
+    DataSource:
+      $ref: "schema/verification.json#/$defs/data_source"
+
+    RoofSummary:
+      allOf:
+        - $ref: "#/components/schemas/RoofFields"
+      unevaluatedProperties: false
+
+    RoofFields:
+      description: >-
+        RoofSummary ve RoofDetail'in ortak alanları. Açık bırakılmıştır; kapatma
+        (unevaluatedProperties) onu kullanan şemalarda yapılır, aksi halde allOf ile
+        genişletilen RoofDetail measurement_history alanını reddederdi.
+      type: object
+      required:
+        - roof_id
+        - city
+        - roof_class
+        - lat
+        - lon
+        - area_m2
+        - albedo
+        - surface_temp_c
+        - priority_score
+        - estimated_cost_eur
+        - status
+        - data_source
+        - geometry
+      properties:
+        roof_id:
+          $ref: "schema/verification.json#/properties/roof_id"
+        city:
+          type: string
+          description: Çatının bulunduğu şehir; /roofs?city= filtresi bu alanla büyük/küçük harf duyarsız eşleşir.
+          example: Athens
+        roof_class:
+          $ref: "#/components/schemas/RoofClass"
+        lat:
+          type: number
+          minimum: -90
+          maximum: 90
+        lon:
+          type: number
+          minimum: -180
+          maximum: 180
+        area_m2:
+          type: number
+          minimum: 0
+          description: Çatı yüzey alanı (m²).
+        albedo:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Mevcut yüzeyin güneş yansıtma katsayısı.
+        surface_temp_c:
+          type: number
+          description: En güncel ölçülen çatı yüzey sıcaklığı (°C).
+        priority_score:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: >-
+            Çatının seçim önceliğini belirleyen bileşik puan, 0-1 aralığında (yüksek = daha
+            öncelikli). Yüzde değildir.
+        estimated_cost_eur:
+          type: number
+          minimum: 0
+          description: >-
+            Tahmini kaplama maliyeti (EUR), area_m2 x COST_PER_M2_EUR. Birim fiyat backend
+            .env'inden okunur, varsayılan 12 EUR/m². Bütçe seçimi bu alanı kullanır.
+          example: 7686.0
+        status:
+          type: string
+          description: >-
+            Çatının proje yaşam döngüsündeki durumu (doğrulama kararından bağımsız).
+          example: candidate
+        data_source:
+          allOf:
+            - $ref: "#/components/schemas/DataSource"
+          description: >-
+            albedo ve surface_temp_c değerlerinin kaynağı: uydudan ölçülmüş çatılar
+            measured, demo seed çatıları simulated.
+        geometry:
+          oneOf:
+            - $ref: "#/components/schemas/GeoJsonPolygon"
+            - type: "null"
+          description: >-
+            Çatı ayak izi (PostGIS geom, ST_AsGeoJSON). /roofs listesinde sadece
+            include_geometry=true ile dolar, yoksa null; /roofs/{roof_id} her zaman döner.
+
+    RoofDetail:
+      unevaluatedProperties: false
+      allOf:
+        - $ref: "#/components/schemas/RoofFields"
+        - type: object
+          required: [measurement_history, geometry]
+          properties:
+            geometry:
+              $ref: "#/components/schemas/GeoJsonPolygon"
+            measurement_history:
+              type: array
+              items:
+                $ref: "#/components/schemas/MeasurementHistoryEntry"
+
+    GeoJsonPolygon:
+      type: object
+      additionalProperties: false
+      required: [type, coordinates]
+      description: >-
+        RFC 7946 Polygon. Her konum [lon, lat] sırasındadır (enlem-boylam değil), 7 ondalık
+        basamak (~1 cm). İlk halka dış sınırdır ve kapalıdır (ilk nokta = son nokta).
+      properties:
+        type:
+          const: Polygon
+        coordinates:
+          type: array
+          minItems: 1
+          items:
+            type: array
+            minItems: 4
+            items:
+              type: array
+              minItems: 2
+              maxItems: 2
+              items: { type: number }
+
+    MeasurementHistoryEntry:
+      type: object
+      additionalProperties: false
+      required: [measurement_id, phase, measured_at, anomaly_flags, data_source]
+      properties:
+        measurement_id: { type: string, format: uuid }
+        phase:
+          $ref: "#/components/schemas/MeasurementPhase"
+        measured_at: { type: string, format: date-time }
+        normalized_delta_c:
+          oneOf:
+            - $ref: "schema/verification.json#/properties/normalized_delta_c"
+            - type: "null"
+          description: "before fazında henüz hesaplanmaz, null olur."
+        anomaly_flags:
+          $ref: "schema/verification.json#/properties/anomaly_flags"
+        data_source:
+          $ref: "#/components/schemas/DataSource"
+
+    MeasurementPhase:
+      type: string
+      enum: [before, after, durability]
+      description: >-
+        before: kaplama öncesi referans ölçüm. after: kaplama sonrası ölçüm.
+        durability: thresholds.json'daki durability_check_days sonrası kalıcılık kontrolü.
+
+    Reading:
+      type: object
+      additionalProperties: false
+      required: [timestamp, surface_temp_c]
+      properties:
+        timestamp: { type: string, format: date-time }
+        surface_temp_c: { type: number }
+
+    MeasurementCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [roof_id, phase, readings, device_id]
+      properties:
+        roof_id:
+          $ref: "schema/verification.json#/properties/roof_id"
+        phase:
+          $ref: "#/components/schemas/MeasurementPhase"
+        readings:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/Reading"
+        device_id:
+          type: string
+          description: Ölçümü üreten cihazın kimliği.
+        data_source:
+          type: string
+          enum: [measured, simulated]
+          default: simulated
+          description: >-
+            Okumaların kaynağı. Bu projede fiziksel deney yapılmadığından varsayılan
+            simulated; gerçek bir saha cihazı measured gönderir. third_party kabul edilmez.
+
+    MeasurementCreateResponse:
+      type: object
+      additionalProperties: false
+      required: [measurement_id, normalized_delta_c, anomaly_flags, data_source]
+      properties:
+        measurement_id: { type: string, format: uuid }
+        normalized_delta_c:
+          $ref: "schema/verification.json#/properties/normalized_delta_c"
+        anomaly_flags:
+          $ref: "schema/verification.json#/properties/anomaly_flags"
+        data_source:
+          $ref: "#/components/schemas/DataSource"
+
+    PhotoUploadResponse:
+      type: object
+      additionalProperties: false
+      required: [coverage_pct, mask_preview_url]
+      properties:
+        coverage_pct:
+          $ref: "schema/verification.json#/properties/coverage_pct"
+        mask_preview_url:
+          type: string
+          format: uri
+          description: Tespit edilen kaplama maskesinin görsel önizlemesi.
+
+    WeatherPoint:
+      type: object
+      additionalProperties: false
+      required:
+        [timestamp, ambient_c, radiation_wm2, wind_ms, max_gust_ms, precipitation_mm, data_source]
+      properties:
+        timestamp: { type: string, format: date-time }
+        ambient_c:
+          $ref: "schema/verification.json#/properties/weather/properties/ambient_c"
+        radiation_wm2:
+          $ref: "schema/verification.json#/properties/weather/properties/radiation_wm2"
+        wind_ms:
+          $ref: "schema/verification.json#/properties/weather/properties/wind_ms"
+        max_gust_ms:
+          $ref: "schema/verification.json#/properties/weather/properties/max_gust_ms"
+        precipitation_mm:
+          type: number
+          minimum: 0
+          description: >-
+            Saatlik yağış (mm). thresholds.json'daki force_majeure_precip_mm ile karşılaştırılır.
+        data_source:
+          allOf:
+            - $ref: "#/components/schemas/DataSource"
+          enum: [third_party, simulated]
+          description: >-
+            Open-Meteo kayıtları third_party, demo seed'in ürettiği kayıtlar simulated.
+            Seed kayıtlarını third_party olarak etiketlemek simüle veriyi gerçek dış kaynak
+            verisi gibi gösterirdi. measured hiçbir zaman dönmez.
+
+    TrancheStatus:
+      type: string
+      enum: [pending, released, held]
+
+    TrancheName:
+      type: string
+      enum: [QUALITY, DURABILITY, FORCE_MAJEURE_RESERVE]
+      description: >-
+        CoolRoofEscrow.sol Tranche enum'u. QUALITY %60 (after doğrulaması), DURABILITY %30
+        (180 gün sonraki kontrol), FORCE_MAJEURE_RESERVE %10 (mücbir sebepte yükleniciye
+        ödenen rezerv).
+
+    Wei:
+      type: string
+      pattern: "^[0-9]+$"
+      description: uint256 wei miktarı. JSON sayısı 2^53'ü aştığı için ondalık rakam dizisi olarak taşınır.
+      example: "600000000000000000"
+
+    EthAddress:
+      type: string
+      pattern: "^0x[a-fA-F0-9]{40}$"
+
+    Tranche:
+      type: object
+      additionalProperties: false
+      required: [name, pct, amount_wei, status, tx_hash, released_at]
+      properties:
+        name:
+          $ref: "#/components/schemas/TrancheName"
+        pct:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Toplam sponsor fonunun bu dilime ayrılan yüzdesi.
+        amount_wei:
+          oneOf:
+            - $ref: "#/components/schemas/Wei"
+            - type: "null"
+          description: >-
+            total_amount_wei'den kontratla aynı bölüşümle hesaplanır (yuvarlama artığı
+            rezerve gider, toplam her zaman depozitoya eşittir). Proje yoksa null.
+        status:
+          $ref: "#/components/schemas/TrancheStatus"
+        tx_hash:
+          oneOf:
+            - $ref: "schema/verification.json#/properties/evidence_hash"
+            - type: "null"
+          description: Serbest bırakma işleminin zincir üzerindeki hash'i, henüz serbest bırakılmadıysa null.
+        released_at:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: "null"
+
+    ContractThresholds:
+      type: object
+      additionalProperties: false
+      description: Çatının şehri için schema/thresholds.json'dan seçilen eşikler (varsayılanlar + şehir değerleri).
+      required:
+        - min_normalized_delta_c
+        - min_coverage_pct
+        - force_majeure_gust_ms
+        - force_majeure_precip_mm
+        - durability_check_days
+        - winter_penalty_check
+        - rationale
+      properties:
+        min_normalized_delta_c: { type: number }
+        min_coverage_pct: { type: number }
+        force_majeure_gust_ms: { type: number }
+        force_majeure_precip_mm: { type: number }
+        durability_check_days: { type: integer }
+        winter_penalty_check: { type: boolean }
+        rationale:
+          type: [string, "null"]
+          description: >-
+            Şehrin soğutma eşiğinin neden bu değerde olduğu (schema/thresholds.json by_city;
+            türetme scripts/threshold_rationale.py, sonucu data/snapshots/threshold_rationale.json).
+            Kendi kaydı olmayan şehirde null. Kaba bir tahmindir, yerel ölçümle kalibre edilmemiştir.
+
+    ContractStatus:
+      type: object
+      additionalProperties: false
+      required:
+        - roof_id
+        - contract_address
+        - sponsor
+        - contractor
+        - total_amount_wei
+        - thresholds
+        - tranches
+        - events
+      description: >-
+        contract_address, sponsor, contractor ve total_amount_wei backend .env'indeki
+        deployment ayarlarından gelir. Dilimi olmayan çatıda (zincirde projesi yok) ve
+        kontrat henüz deploy edilmemişse null döner.
+      properties:
+        roof_id:
+          $ref: "schema/verification.json#/properties/roof_id"
+        contract_address:
+          oneOf:
+            - $ref: "#/components/schemas/EthAddress"
+            - type: "null"
+        sponsor:
+          oneOf:
+            - $ref: "#/components/schemas/EthAddress"
+            - type: "null"
+        contractor:
+          oneOf:
+            - $ref: "#/components/schemas/EthAddress"
+            - type: "null"
+        total_amount_wei:
+          oneOf:
+            - $ref: "#/components/schemas/Wei"
+            - type: "null"
+        thresholds:
+          $ref: "#/components/schemas/ContractThresholds"
+        tranches:
+          type: array
+          items:
+            $ref: "#/components/schemas/Tranche"
+        events:
+          type: array
+          description: Oracle'ın kaydettiği zincir eventleri, occurred_at sırasıyla.
+          items:
+            $ref: "#/components/schemas/ContractEventRecord"
+
+    ContractEventName:
+      type: string
+      enum: [TrancheReleased, PaymentHeld, ForceMajeureApplied, UnreleasedReclaimed]
+
+    ContractEventFields:
+      description: >-
+        ContractEventCreate ve ContractEventRecord'un ortak alanları. TrancheReleased ve
+        PaymentHeld bir dilimin durumunu değiştirdiği için tranche zorunludur.
+        TrancheReleased ve UnreleasedReclaimed para hareket ettirdiği için amount_wei ister;
+        UnreleasedReclaimed'de amount_wei sponsora dönen toplam tutardır, tranche null'dır.
+      type: object
+      properties:
+        event_name:
+          $ref: "#/components/schemas/ContractEventName"
+        tranche:
+          oneOf:
+            - $ref: "#/components/schemas/TrancheName"
+            - type: "null"
+        amount_wei:
+          oneOf:
+            - $ref: "#/components/schemas/Wei"
+            - type: "null"
+        tx_hash:
+          $ref: "schema/verification.json#/properties/evidence_hash"
+        block_number:
+          type: integer
+          minimum: 0
+        reason:
+          type: [string, "null"]
+          description: >-
+            PaymentHeld eventinin gerekçesi (ör. "Measurement thresholds not met").
+            ForceMajeureApplied için oracle zincirdeki fırtına değerlerini yazar
+            (ör. "gusts 24.0 m/s, 68.0 mm precipitation"); backend bunları başka yerde tutmaz.
+        occurred_at:
+          type: string
+          format: date-time
+        round:
+          type: integer
+          minimum: 0
+          default: 0
+          description: >-
+            Eventi yayan zincir projesinin demo turu ("ATH-0142#3" için 3, eksiz proje için 0).
+            Gövdede yoksa 0 sayılır.
+      allOf:
+        - if:
+            properties:
+              event_name: { enum: [TrancheReleased, PaymentHeld] }
+          then:
+            required: [tranche]
+            properties:
+              tranche: { $ref: "#/components/schemas/TrancheName" }
+        - if:
+            properties:
+              event_name: { enum: [TrancheReleased, UnreleasedReclaimed] }
+          then:
+            required: [amount_wei]
+            properties:
+              amount_wei: { $ref: "#/components/schemas/Wei" }
+
+    ContractEventCreate:
+      allOf:
+        - $ref: "#/components/schemas/ContractEventFields"
+      required: [event_name, tx_hash, block_number, occurred_at]
+      unevaluatedProperties: false
+
+    ContractEventRecord:
+      allOf:
+        - $ref: "#/components/schemas/ContractEventFields"
+      required:
+        - roof_id
+        - event_name
+        - tranche
+        - amount_wei
+        - tx_hash
+        - block_number
+        - reason
+        - occurred_at
+        - round
+      properties:
+        roof_id:
+          $ref: "schema/verification.json#/properties/roof_id"
+      unevaluatedProperties: false
+
+    DemoRoundStatus:
+      type: object
+      additionalProperties: false
+      required: [round]
+      properties:
+        round: { type: integer, minimum: 0 }
+
+    DemoResetResponse:
+      type: object
+      additionalProperties: false
+      required: [round, roof_ids, deleted, restored]
+      properties:
+        round:
+          type: integer
+          minimum: 1
+          description: Bu sıfırlamanın açtığı demo turu; zincirde scripts/demo-round.sh fonlar.
+        roof_ids:
+          type: array
+          items:
+            $ref: "schema/verification.json#/properties/roof_id"
+        deleted:
+          type: object
+          additionalProperties: false
+          required:
+            - contract_events
+            - contract_states
+            - verifications
+            - measurements
+            - weather_records
+            - photo_files
+          properties:
+            contract_events:
+              type: integer
+              minimum: 0
+              description: Önceki turun zincirden aktarılmış eventleri.
+            contract_states:
+              type: integer
+              minimum: 0
+              description: Önceki turun dilim durumları; yeni tur için pending olarak yeniden eklenir.
+            verifications: { type: integer, minimum: 0 }
+            measurements: { type: integer, minimum: 0 }
+            weather_records:
+              type: integer
+              minimum: 0
+              description: Sadece simulated seed hava kayıtları; third_party kayıtlar silinmez.
+            photo_files:
+              type: integer
+              minimum: 0
+              description: Silinen ölçümlerin data/photos altındaki yükleme ve maske dosyaları.
+        restored:
+          type: object
+          additionalProperties: false
+          required: [roofs, measurements, verifications, weather_records, contract_states]
+          properties:
+            roofs: { type: integer, minimum: 0 }
+            measurements: { type: integer, minimum: 0 }
+            verifications: { type: integer, minimum: 0 }
+            weather_records: { type: integer, minimum: 0 }
+            contract_states:
+              type: integer
+              minimum: 0
+              description: Pending ve tx_hash'siz eklenen dilimler (yeni turda üç çatı için 9).
+
+    RoundWallet:
+      type: object
+      additionalProperties: false
+      required: [address, balance, round_cost, rounds_left]
+      properties:
+        address:
+          $ref: "#/components/schemas/EthAddress"
+        balance:
+          type: string
+          description: Bakiye, POL (ondalık dizgi).
+        round_cost:
+          type: string
+          description: >-
+            Bir demo turunun bu cüzdana maliyeti, POL. Sponsor: üç depozito ve üç createProject;
+            oracle: kurulumdaki fırtına kalite ödemesi ve çatı başına bir submitVerification.
+        rounds_left:
+          type: integer
+          minimum: 0
+          description: Güncel gas fiyatıyla bakiyenin karşıladığı tam tur sayısı.
+
+    OracleHealth:
+      type: object
+      additionalProperties: false
+      required:
+        - ok
+        - network
+        - chain_id
+        - contract_address
+        - oracle_address
+        - balance
+        - gas_price_gwei
+        - sponsor
+        - oracle
+      properties:
+        ok: { type: boolean, const: true }
+        network:
+          type: string
+          enum: [local, amoy, other]
+          description: >-
+            Oracle'ın bağlı olduğu zincir: local (31337), amoy (80002) ya da başka bir zincir.
+            Arayüz bunu her sayfada rozet olarak gösterir. local dışında işlem göndermek
+            ALLOW_MAINNET_SPEND=true ister.
+        chain_id: { type: integer, minimum: 1 }
+        contract_address:
+          $ref: "#/components/schemas/EthAddress"
+        oracle_address:
+          $ref: "#/components/schemas/EthAddress"
+        balance:
+          type: string
+          description: Oracle cüzdanının bakiyesi, POL (oracle.balance ile aynı).
+        gas_price_gwei: { type: string }
+        sponsor:
+          $ref: "#/components/schemas/RoundWallet"
+        oracle:
+          $ref: "#/components/schemas/RoundWallet"
+
+    SimulatedReading:
+      type: object
+      additionalProperties: false
+      required: [timestamp, surface_temp_c, data_source]
+      properties:
+        timestamp: { type: string, format: date-time }
+        surface_temp_c: { type: number }
+        data_source:
+          allOf:
+            - $ref: "#/components/schemas/DataSource"
+          const: simulated
+
+    SimulatedPhase:
+      type: object
+      additionalProperties: false
+      required: [start, albedo, readings]
+      properties:
+        start: { type: string, format: date-time }
+        albedo:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Simülasyonda kullanılan albedo (önce çatının uydu albedosu, sonra kaplama).
+        readings:
+          type: array
+          description: 15 dakikalık oturum, 30 saniye aralıklı, ±0.3 °C sensör gürültüsüyle.
+          items:
+            $ref: "#/components/schemas/SimulatedReading"
+
+    SimulatedSeries:
+      type: object
+      additionalProperties: false
+      required: [roof_id, data_source, model, weather_source, before, after]
+      properties:
+        roof_id:
+          $ref: "schema/verification.json#/properties/roof_id"
+        data_source:
+          allOf:
+            - $ref: "#/components/schemas/DataSource"
+          const: simulated
+        model:
+          type: string
+          description: Yüzey sıcaklığını üreten fiziksel model.
+        weather_source:
+          type: string
+          description: Modeli süren hava verisinin kaynağı (gerçek, third_party).
+        before:
+          $ref: "#/components/schemas/SimulatedPhase"
+        after:
+          $ref: "#/components/schemas/SimulatedPhase"
+
+    AlbedoGroup:
+      type: object
+      additionalProperties: false
+      required: [n, albedo_range, mean_c, median_c, std_c, mean_area_m2, centroid]
+      properties:
+        n: { type: integer, minimum: 0 }
+        albedo_range:
+          type: array
+          items: { type: number }
+          minItems: 2
+          maxItems: 2
+        mean_c: { type: number }
+        median_c: { type: number }
+        std_c: { type: number, minimum: 0 }
+        mean_area_m2: { type: number, minimum: 0 }
+        centroid:
+          type: array
+          description: "[lat, lon]"
+          items: { type: number }
+          minItems: 2
+          maxItems: 2
+
+    SatelliteConfounders:
+      type: object
+      unevaluatedProperties: false
+      description: >-
+        Koyu ve açık grubu ayıran, albedo dışındaki farklar; t-testi bunları kontrol etmez.
+      required: [area_difference_m2, centroid_distance_m, height, note]
+      properties:
+        area_difference_m2:
+          type: number
+          description: Açık grup ortalama alanı eksi koyu grup ortalama alanı, m².
+        centroid_distance_m:
+          type: number
+          minimum: 0
+          description: İki grubun ağırlık merkezleri arasındaki mesafe, metre.
+        height:
+          type: string
+          description: Bina yüksekliği bilgisinin durumu (OSM'de güvenilir yükseklik yok).
+        note: { type: string }
+
+    SatelliteCase:
+      type: object
+      unevaluatedProperties: false
+      description: >-
+        Bir çatı kümesinin (şehir x çatı sınıfı) bir termal aletle karşılaştırması.
+        scripts/satellite_evidence.py her alanı her vaka için üretir.
+      required:
+        - case_id
+        - city
+        - period
+        - roof_class
+        - instrument
+        - instrument_resolution_m
+        - pixel_area_m2
+        - mean_roof_area_m2
+        - roof_to_pixel_area_ratio
+        - n_low
+        - n_high
+        - low_albedo_group
+        - high_albedo_group
+        - delta_c
+        - t_statistic
+        - p_value
+        - significant
+        - significance_level
+        - test
+        - confounders
+        - significant_raw
+        - significant_bonferroni
+        - significant_fdr
+        - p_value_bonferroni
+        - q_value_fdr
+        - interpretation
+        - resolution_caveat
+      properties:
+        case_id: { type: string, example: athens_small_roofs }
+        city: { type: string, example: Athens }
+        period: { type: string, example: 2026-06-01..2026-08-31 }
+        roof_class:
+          $ref: "#/components/schemas/RoofClass"
+        instrument: { type: string }
+        instrument_resolution_m: { type: number, minimum: 0 }
+        pixel_area_m2:
+          type: number
+          minimum: 0
+          description: Bir termal pikselin alanı, m² (çözünürlüğün karesi).
+        mean_roof_area_m2: { type: number, minimum: 0 }
+        roof_to_pixel_area_ratio:
+          type: number
+          minimum: 0
+          description: Ortalama çatı alanı / bir termal pikselin alanı.
+        n_low: { type: integer, minimum: 0 }
+        n_high: { type: integer, minimum: 0 }
+        low_albedo_group:
+          $ref: "#/components/schemas/AlbedoGroup"
+        high_albedo_group:
+          $ref: "#/components/schemas/AlbedoGroup"
+        delta_c: { type: number }
+        t_statistic: { type: number, description: Welch t istatistiği. }
+        p_value: { type: number, minimum: 0, maximum: 1 }
+        significant:
+          type: boolean
+          description: significant_raw ile aynı; geriye dönük uyumluluk için tutulur.
+        significance_level:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Düzeltmesiz test eşiği (alfa).
+        test: { type: string, example: Welch two-sample t-test (high vs low albedo) }
+        confounders:
+          $ref: "#/components/schemas/SatelliteConfounders"
+        significant_raw:
+          type: boolean
+          description: Düzeltmesiz p_value < significance_level.
+        significant_bonferroni:
+          type: boolean
+          description: p_value < bonferroni_alpha (significance_level / n_tests).
+        significant_fdr:
+          type: boolean
+          description: Benjamini-Hochberg q_value_fdr < significance_level.
+        p_value_bonferroni:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: min(1, p_value x n_tests).
+        q_value_fdr:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Benjamini-Hochberg düzeltilmiş q değeri.
+        interpretation: { type: string }
+        resolution_caveat: { type: string }
+
+    SatelliteConclusion:
+      type: object
+      unevaluatedProperties: false
+      description: >-
+        Çoklu karşılaştırma düzeltmesinden sonraki sonuç. Sayılar istemcinin metni
+        ayrıştırmadan düzeltmeyi göstermesi içindir.
+      required:
+        - n_cases_tested
+        - n_significant_raw
+        - n_significant_bonferroni
+        - n_significant_fdr
+        - raw_significant_case_ids
+        - surviving_case_ids
+        - tests_summary
+        - resolution_finding
+        - untested_explanations
+        - verdict
+        - text
+      properties:
+        n_cases_tested: { type: integer, minimum: 0 }
+        n_significant_raw: { type: integer, minimum: 0 }
+        n_significant_bonferroni: { type: integer, minimum: 0 }
+        n_significant_fdr: { type: integer, minimum: 0 }
+        raw_significant_case_ids:
+          type: array
+          items: { type: string }
+          description: Düzeltmesiz p < significance_level olan vakalar.
+        surviving_case_ids:
+          type: array
+          items: { type: string }
+          description: Bonferroni veya FDR düzeltmesinden sonra anlamlı kalan vakalar.
+        tests_summary:
+          type: string
+          description: Kaç testin ham, Bonferroni ve FDR ile anlamlı kaldığının özeti.
+        resolution_finding:
+          type: string
+          description: Termal çözünürlüğün sonucu nasıl sınırladığına dair bulgu.
+        untested_explanations:
+          type: array
+          items: { type: string }
+          description: Sinyalin yokluğu için test edilmemiş olası nedenler.
+        verdict:
+          type: string
+          description: Tek cümlelik hüküm; arayüz başlık olarak gösterebilir.
+        text:
+          type: string
+          description: Sayılar, açıklamalar ve hükmü birleştiren tam metin.
+
+    LargeRoofExclusion:
+      type: object
+      unevaluatedProperties: false
+      required: [roof_id, osm_id, reason]
+      properties:
+        roof_id: { type: string }
+        osm_id: { type: string }
+        reason:
+          type: string
+          description: Büyük çatının analizden neden çıkarıldığı (ör. endüstriyel alan içinde).
+
+    CityRoofCleaning:
+      type: object
+      unevaluatedProperties: false
+      required: [n_before, n_excluded, n_after, excluded]
+      properties:
+        n_before: { type: integer, minimum: 0 }
+        n_excluded: { type: integer, minimum: 0 }
+        n_after: { type: integer, minimum: 0 }
+        excluded:
+          type: array
+          items:
+            $ref: "#/components/schemas/LargeRoofExclusion"
+
+    LargeRoofCleaning:
+      type: object
+      unevaluatedProperties: false
+      description: >-
+        Büyük çatı kümesinden çıkarılan binalar ve temizlik öncesi vakalar; temizliğin etkisi
+        görünür kalsın diye eski sayılar silinmez.
+      required: [rule, cities, significance_changed, changed_case_ids, cases_before_cleaning]
+      properties:
+        rule:
+          type: string
+          description: Hangi büyük çatıların çıkarıldığını belirleyen kural.
+        cities:
+          type: object
+          description: Şehir anahtarına (athens, london) göre temizlik sonucu.
+          additionalProperties:
+            $ref: "#/components/schemas/CityRoofCleaning"
+        significance_changed:
+          type: boolean
+          description: Temizlik bir vakanın anlamlılık bayraklarından birini değiştirdiyse true.
+        changed_case_ids:
+          type: array
+          items: { type: string }
+        cases_before_cleaning:
+          type: array
+          description: Çatı kaybeden kümelerin temizlik öncesi vakaları.
+          items:
+            $ref: "#/components/schemas/SatelliteCase"
+
+    SatelliteEvidence:
+      type: object
+      unevaluatedProperties: false
+      description: >-
+        Gözlemsel karşılaştırma, kontrollü deney değil. Kök seviyedeki tekil alanlar
+        manşet vakayı (case_id, genelde athens_small_roofs) düzleştirir; tüm vakalar cases
+        içindedir.
+      required:
+        - source
+        - data_source
+        - period
+        - statistic
+        - case_id
+        - instrument
+        - instrument_resolution_m
+        - low_albedo_group
+        - high_albedo_group
+        - delta_c
+        - p_value
+        - significant
+        - resolution_caveat
+        - n_tests
+        - bonferroni_alpha
+        - multiple_comparison_note
+        - cases
+        - large_roof_cleaning
+        - conclusion
+        - caveat
+      properties:
+        source:
+          type: string
+          const: measured
+        data_source:
+          allOf:
+            - $ref: "#/components/schemas/DataSource"
+          const: measured
+        period:
+          type: string
+          example: Athens 2026-06-01..2026-08-31; London 2026-06-01..2026-08-31
+        statistic:
+          type: string
+          description: Çatı başına hangi sıcaklık değerinin karşılaştırıldığı.
+        case_id:
+          type: string
+          description: Kök seviyedeki tekil alanların geldiği manşet vaka.
+          example: athens_small_roofs
+        instrument:
+          type: string
+          example: Landsat 8/9 C2L2 ST_B10
+        instrument_resolution_m:
+          type: number
+          minimum: 0
+          description: Termal bandın gerçek (yeniden örneklenmemiş) uzamsal çözünürlüğü, metre.
+          example: 100
+        low_albedo_group:
+          $ref: "#/components/schemas/AlbedoGroup"
+        high_albedo_group:
+          $ref: "#/components/schemas/AlbedoGroup"
+        delta_c:
+          type: number
+          description: Açık grup ortalaması eksi koyu grup ortalaması (°C); negatif = açık çatılar daha serin.
+        p_value:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Welch bağımsız iki örneklem t-testinin p değeri.
+        significant:
+          type: boolean
+          description: p_value, significance_level (0.05) altındaysa true.
+        resolution_caveat:
+          type: string
+          description: >-
+            Termal piksel boyutunun çatı boyutuna göre sonucu nasıl sınırladığına dair
+            açıklama; arayüz delta_c'yi bu notla birlikte göstermeli.
+        n_tests:
+          type: integer
+          minimum: 1
+          description: Yapılan bağımsız t-testi sayısı (vaka sayısı).
+        bonferroni_alpha:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: significance_level / n_tests.
+        multiple_comparison_note: { type: string }
+        cases:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/SatelliteCase"
+        large_roof_cleaning:
+          $ref: "#/components/schemas/LargeRoofCleaning"
+        conclusion:
+          $ref: "#/components/schemas/SatelliteConclusion"
+        caveat:
+          type: string
+          example: Observational comparison, not a controlled experiment
+
+    RoofClass:
+      type: string
+      enum: [small, large]
+      description: Çatı alanı sınıfı; termal piksele göre küçük ya da büyük çatı.
+
+    ClimateMethod:
+      type: string
+      enum: [demand_weighted, solar_only]
+      description: >-
+        demand_weighted: yansıtılan ışınım yalnızca soğutma (> 24 C) veya ısıtma (< 15.5 C)
+        ihtiyacı olan saatlerde sayılır. solar_only: tüm yaz saatleri kazanç, tüm kış
+        saatleri kayıp sayılır.
+
+    SeasonalBalance:
+      type: object
+      unevaluatedProperties: false
+      description: >-
+        Bir yöntemle hesaplanan mevsimsel denge. cooling_base_c ve heating_base_c yalnızca
+        demand_weighted'da gelir; solar_only eşik kullanmaz.
+      required:
+        - cooling_benefit_kwh_per_m2
+        - heating_penalty_kwh_per_m2
+        - net_benefit_kwh_per_m2
+        - penalty_to_benefit_ratio
+      properties:
+        cooling_benefit_kwh_per_m2:
+          type: number
+          description: Yazın çatıdan uzak tutulan ışınım (soğutma kazancı), kWh/m².
+        heating_penalty_kwh_per_m2:
+          type: number
+          description: Kışın kaybedilen ışınım (ısıtma maliyeti), kWh/m².
+        net_benefit_kwh_per_m2:
+          type: number
+          description: cooling_benefit - heating_penalty, kWh/m².
+        penalty_to_benefit_ratio:
+          type: [number, "null"]
+          description: heating_penalty / cooling_benefit; kazanç sıfırsa null.
+        cooling_base_c:
+          type: number
+          description: Soğutma ihtiyacının başladığı hava sıcaklığı (yalnızca demand_weighted).
+        heating_base_c:
+          type: number
+          description: Isıtma ihtiyacının başladığı hava sıcaklığı (yalnızca demand_weighted).
+
+    HeatReference:
+      type: object
+      unevaluatedProperties: false
+      required: [summer_max_ambient_c, summer_year, historical_peak, text]
+      properties:
+        summer_max_ambient_c:
+          type: number
+          description: Referans noktasında yazın en sıcak saatin hava sıcaklığı (Open-Meteo).
+        summer_year: { type: integer }
+        historical_peak:
+          type: [string, "null"]
+          description: Ölçüm yılından farklı bir yıla ait tarihsel zirve notu; yoksa null.
+        text: { type: string }
+
+    TypicalRoofNet:
+      type: object
+      unevaluatedProperties: false
+      description: >-
+        Çatı sınıfı başına tipik bir çatının net kazancı, kWh. Şehirde o sınıftan çatı
+        yoksa alan gelmez.
+      properties:
+        small: { type: number }
+        large: { type: number }
+
+    CityClimate:
+      type: object
+      unevaluatedProperties: false
+      description: >-
+        Bir şehrin mevsimsel enerji dengesi, iki yöntemle. Kök seviyedeki
+        net_benefit_kwh_per_m2 birincil yöntemin (demand_weighted) değeridir.
+      required:
+        - city
+        - summer_period
+        - winter_period
+        - roofs
+        - median_current_albedo
+        - coated_albedo
+        - summer_surface_cooling_c
+        - summer_peak_surface_cooling_c
+        - heating_degree_hours
+        - cooling_degree_hours
+        - winter_heating_degree_days
+        - winter_irradiation_kwh_per_m2
+        - net_benefit_kwh_per_m2
+        - heat_reference
+        - demand_weighted
+        - solar_only
+        - typical_roof_net_kwh
+      properties:
+        city: { type: string, example: Athens }
+        summer_period: { type: string, example: 2026-06-01..2026-08-31 }
+        winter_period: { type: string, example: 2025-12-01..2026-02-28 }
+        roofs: { type: integer, minimum: 0, description: Medyan albedonun hesaplandığı çatı sayısı. }
+        median_current_albedo: { type: number, minimum: 0, maximum: 1 }
+        coated_albedo: { type: number, minimum: 0, maximum: 1 }
+        summer_surface_cooling_c:
+          type: number
+          description: Yaz ortalamasında kaplamanın yüzey sıcaklığına etkisi (°C, modelden).
+        summer_peak_surface_cooling_c: { type: number }
+        heating_degree_hours: { type: number, minimum: 0 }
+        cooling_degree_hours: { type: number, minimum: 0 }
+        winter_heating_degree_days:
+          type: number
+          minimum: 0
+          description: Kış dönemi ısıtma derece-günü (HDD).
+        winter_irradiation_kwh_per_m2:
+          type: number
+          minimum: 0
+          description: Kış dönemi toplam yatay küresel ışınım, kWh/m².
+        net_benefit_kwh_per_m2:
+          type: number
+          description: Birincil yöntemin net kazancı, kWh/m².
+        heat_reference:
+          $ref: "#/components/schemas/HeatReference"
+        demand_weighted:
+          $ref: "#/components/schemas/SeasonalBalance"
+        solar_only:
+          $ref: "#/components/schemas/SeasonalBalance"
+        typical_roof_net_kwh:
+          $ref: "#/components/schemas/TypicalRoofNet"
+
+    ClimateMethodDescriptions:
+      type: object
+      unevaluatedProperties: false
+      description: Her yöntemin tek cümlelik açıklaması.
+      required: [demand_weighted, solar_only]
+      properties:
+        demand_weighted: { type: string }
+        solar_only: { type: string }
+
+    ClimateComparison:
+      type: object
+      unevaluatedProperties: false
+      description: Kaba fiziksel tahmin, ölçüm değil; data_source her zaman simulated.
+      required:
+        - data_source
+        - primary_method
+        - secondary_method
+        - secondary_method_note
+        - methods
+        - cities
+        - conclusion
+        - assumptions
+        - method
+        - caveat
+        - weather_source
+        - generated_at
+      properties:
+        data_source:
+          allOf:
+            - $ref: "#/components/schemas/DataSource"
+          const: simulated
+        primary_method:
+          $ref: "#/components/schemas/ClimateMethod"
+        secondary_method:
+          $ref: "#/components/schemas/ClimateMethod"
+        secondary_method_note:
+          type: string
+          description: İkincil yöntemin neden birincil seçilmediğini açıklar.
+        methods:
+          $ref: "#/components/schemas/ClimateMethodDescriptions"
+        cities:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/CityClimate"
+        conclusion: { type: string }
+        assumptions:
+          type: array
+          minItems: 1
+          items: { type: string }
+          description: Tahminin dayandığı varsayımlar; arayüz sonuçla birlikte göstermeli.
+        method: { type: string }
+        caveat: { type: string }
+        weather_source: { type: string }
+        generated_at: { type: string, format: date-time }
+
+    DetectorMetrics:
+      type: object
+      additionalProperties: false
+      required: [true_positives, false_positives, false_negatives, precision, recall]
+      properties:
+        true_positives: { type: integer, minimum: 0 }
+        false_positives: { type: integer, minimum: 0 }
+        false_negatives: { type: integer, minimum: 0 }
+        precision: { type: number, minimum: 0, maximum: 1 }
+        recall: { type: number, minimum: 0, maximum: 1 }
+
+    DetectionRate:
+      type: object
+      unevaluatedProperties: false
+      required: [n, rules, isolation_forest]
+      properties:
+        n: { type: integer, minimum: 0 }
+        rules: { type: number, minimum: 0, maximum: 1 }
+        isolation_forest: { type: number, minimum: 0, maximum: 1 }
+
+    AnomalyDetectionMetrics:
+      type: object
+      unevaluatedProperties: false
+      description: Kural tabanlı ve IsolationForest katmanları ayrı ayrı raporlanır.
+      required:
+        - data_source
+        - sessions
+        - anomalies
+        - rules
+        - isolation_forest
+        - combined
+        - detection_rate_by_kind
+      properties:
+        data_source:
+          allOf:
+            - $ref: "#/components/schemas/DataSource"
+          const: simulated
+        sessions:
+          type: integer
+          minimum: 0
+          description: Değerlendirilen simüle ölçüm oturumu sayısı.
+        anomalies:
+          type: integer
+          minimum: 0
+          description: Bunlardan anomali olarak etiketlenenler.
+        rules:
+          $ref: "#/components/schemas/DetectorMetrics"
+        isolation_forest:
+          $ref: "#/components/schemas/DetectorMetrics"
+        combined:
+          $ref: "#/components/schemas/DetectorMetrics"
+        detection_rate_by_kind:
+          type: object
+          description: Anomali türü (ör. frozen_sensor, replayed_upload) başına yakalama oranı.
+          additionalProperties:
+            $ref: "#/components/schemas/DetectionRate"
+
+    DeltaSpread:
+      type: object
+      unevaluatedProperties: false
+      description: Aynı kaplamanın farklı hava koşullarındaki delta dağılımı, °C.
+      required: [mean_c, std_c, min_c, max_c, range_c]
+      properties:
+        mean_c: { type: number }
+        std_c: { type: number, minimum: 0 }
+        min_c: { type: number }
+        max_c: { type: number }
+        range_c: { type: number, minimum: 0, description: max_c - min_c. }
+
+    NormalizationScenario:
+      type: object
+      unevaluatedProperties: false
+      description: Aynı kaplama, bir saatlik gerçek hava koşulu altında.
+      required:
+        - after_measured_at
+        - ambient_c
+        - radiation_wm2
+        - wind_ms
+        - raw_delta_c
+        - normalized_delta_c
+      properties:
+        after_measured_at: { type: string, format: date-time }
+        ambient_c: { type: number }
+        radiation_wm2: { type: number, minimum: 0 }
+        wind_ms: { type: number, minimum: 0 }
+        raw_delta_c: { type: number }
+        normalized_delta_c: { type: number }
+
+    NormalizationMetrics:
+      type: object
+      unevaluatedProperties: false
+      description: >-
+        Aynı kaplama, farklı hava koşulları: ham deltanın ve normalize deltanın
+        dağılımı. "Neden yapay zeka gerekli" sorusunun ana metriği.
+      required:
+        - data_source
+        - weather_source
+        - weather_roof_id
+        - albedo_before
+        - albedo_after
+        - before_measured_at
+        - true_delta_at_standard_c
+        - raw_delta
+        - normalized_delta
+        - spread_reduction_factor
+        - scenarios
+      properties:
+        data_source:
+          allOf:
+            - $ref: "#/components/schemas/DataSource"
+          const: simulated
+        weather_source: { type: string }
+        weather_roof_id:
+          type: string
+          description: Gerçek saatlik havası kullanılan çatı.
+        albedo_before: { type: number, minimum: 0, maximum: 1 }
+        albedo_after: { type: number, minimum: 0, maximum: 1 }
+        before_measured_at: { type: string, format: date-time }
+        true_delta_at_standard_c:
+          type: number
+          description: Fiziksel modelin standart koşullardaki gerçek deltası.
+        raw_delta:
+          $ref: "#/components/schemas/DeltaSpread"
+        normalized_delta:
+          $ref: "#/components/schemas/DeltaSpread"
+        spread_reduction_factor:
+          type: [number, "null"]
+          description: raw_delta.std_c / normalized_delta.std_c; normalize dağılım sıfırsa null.
+        scenarios:
+          type: array
+          items:
+            $ref: "#/components/schemas/NormalizationScenario"
+
+    MetricsReport:
+      type: object
+      unevaluatedProperties: false
+      required: [data_source, generated_at, anomaly_detection, normalization]
+      properties:
+        data_source:
+          allOf:
+            - $ref: "#/components/schemas/DataSource"
+          const: simulated
+        generated_at: { type: string, format: date-time }
+        anomaly_detection:
+          $ref: "#/components/schemas/AnomalyDetectionMetrics"
+        normalization:
+          $ref: "#/components/schemas/NormalizationMetrics"

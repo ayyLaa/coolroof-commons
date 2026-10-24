@@ -1,0 +1,47 @@
+# Requires Docker Compose 2.24.4+ for !override. No public-chain setup runs implicitly.
+services:
+  chain:
+    profiles: [local]
+  chain-setup:
+    profiles: [local]
+  backend:
+    environment:
+      APP_MODE: production
+      WRITE_API_KEY: ${WRITE_API_KEY:?Set an operator API key}
+      EVENT_API_KEY: ${EVENT_API_KEY:?Set a separate oracle event key}
+      EVENT_RPC_URL: ${AMOY_RPC_URL:?Set the Amoy RPC URL}
+      EXPECTED_CHAIN_ID: 80002
+      CONTRACT_ADDRESS: ${CONTRACT_ADDRESS:?Deploy the updated escrow first}
+      CONTRACT_SPONSOR: ${CONTRACT_SPONSOR:?Set the sponsor address}
+      CONTRACT_CONTRACTOR: ${CONTRACT_CONTRACTOR:?Set the contractor address}
+      CORS_ORIGINS: ${PUBLIC_APP_URL:-http://localhost:5173}
+  oracle:
+    depends_on: !override
+      backend:
+        condition: service_healthy
+    environment: &amoy-oracle
+      APP_MODE: production
+      WRITE_API_KEY: ${WRITE_API_KEY:?Set an operator API key}
+      EVENT_API_KEY: ${EVENT_API_KEY:?Set a separate oracle event key}
+      BACKEND_URL: http://backend:8000
+      AMOY_RPC_URL: ${AMOY_RPC_URL:?Set the Amoy RPC URL}
+      CONTRACT_ADDRESS: ${CONTRACT_ADDRESS:?Deploy the updated escrow first}
+      ORACLE_PRIVATE_KEY: ${ORACLE_PRIVATE_KEY:?Set the oracle private key locally}
+      ALLOW_MAINNET_SPEND: ${ALLOW_MAINNET_SPEND:-false}
+      EVENTS_FROM_BLOCK: ${EVENTS_FROM_BLOCK:?Set the updated deployment block}
+      ORACLE_CORS_ORIGIN: ${PUBLIC_APP_URL:-http://localhost:5173}
+      EXPLORER_URL: https://amoy.polygonscan.com
+  oracle-listener:
+    depends_on: !override
+      backend:
+        condition: service_healthy
+    environment: *amoy-oracle
+  frontend:
+    build:
+      args:
+        VITE_API_URL: ${PUBLIC_API_URL:-http://localhost:8000}
+        VITE_ORACLE_URL: ${PUBLIC_ORACLE_URL:-http://localhost:4020}
+        VITE_AMOY_RPC_URL: ${AMOY_RPC_URL:?Set the Amoy RPC URL}
+        VITE_CHAIN_ID: 80002
+        VITE_CONTRACT_ADDRESS: ${CONTRACT_ADDRESS:?Deploy the updated escrow first}
+        VITE_EXPLORER_URL: https://amoy.polygonscan.com

@@ -1,0 +1,134 @@
+# The whole demo with one command: scripts/start.sh, or `docker compose up -d --build --wait`.
+# Values in ${...} come from the repository's .env (see .env.example); the defaults run
+# everything locally on a Hardhat chain. Earth Engine steps are skipped: the backend serves
+# the committed reports in data/snapshots/.
+
+x-local-chain: &local-chain
+  # Hardhat's built-in test accounts (#0 sponsor, #1 oracle, #2 contractor). They are public
+  # test keys for a throwaway local chain only; never use them on a public network.
+  CONTRACT_ADDRESS: ${CONTRACT_ADDRESS:-0x5FbDB2315678afecb367f032d93F642f64180aa3}
+  CONTRACT_SPONSOR: ${CONTRACT_SPONSOR:-0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266}
+  CONTRACT_CONTRACTOR: ${CONTRACT_CONTRACTOR:-0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC}
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: coolroof-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: coolroof
+      POSTGRES_USER: coolroof
+      POSTGRES_PASSWORD: coolroof
+    ports:
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
+    volumes:
+      - coolroof_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U coolroof -d coolroof"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      <<: *local-chain
+      APP_MODE: ${APP_MODE:-local}
+      WRITE_API_KEY: ${WRITE_API_KEY:-}
+      EVENT_API_KEY: ${EVENT_API_KEY:-}
+      EVENT_RPC_URL: http://chain:8545
+      EXPECTED_CHAIN_ID: 31337
+      DATABASE_URL: postgresql+psycopg2://coolroof:coolroof@db:5432/coolroof
+      CORS_ORIGINS: http://localhost:5173
+      PUBLIC_BASE_URL: http://localhost:8000
+      # scripts/start.sh writes one to .env. Left empty (so every compose command still works
+      # without .env), verification answers 503 signing_unavailable.
+      DEVICE_PRIVATE_KEY: ${DEVICE_PRIVATE_KEY:-}
+    ports:
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/roofs?limit=1')"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  chain:
+    build:
+      context: .
+      dockerfile: contracts/Dockerfile
+    image: coolroof-contracts
+    ports:
+      - "127.0.0.1:8545:8545"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8545',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'eth_chainId'})}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 3s
+      timeout: 5s
+      retries: 30
+
+  # One-shot: deploys the escrow and funds the three demo projects. The chain keeps its
+  # state in memory, so this runs again whenever the stack starts.
+  chain-setup:
+    image: coolroof-contracts
+    depends_on:
+      chain:
+        condition: service_healthy
+    environment:
+      CHAIN_RPC_URL: http://chain:8545
+      ORACLE_ADDRESS: 0x70997970C51812dc3A010C7d01b50e0d17dc79C8
+      CONTRACTOR_ADDRESS: 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC
+    command: sh -c "npx hardhat run scripts/deploy.ts --network docker && npx hardhat run scripts/setup-demo.ts --network docker"
+    restart: "no"
+
+  oracle:
+    build:
+      context: .
+      dockerfile: oracle/Dockerfile
+    image: coolroof-oracle
+    depends_on: &oracle-depends
+      backend:
+        condition: service_healthy
+      chain-setup:
+        condition: service_completed_successfully
+    environment: &oracle-env
+      APP_MODE: ${APP_MODE:-local}
+      WRITE_API_KEY: ${WRITE_API_KEY:-}
+      EVENT_API_KEY: ${EVENT_API_KEY:-}
+      BACKEND_URL: http://backend:8000
+      AMOY_RPC_URL: ${CHAIN_RPC_URL:-http://chain:8545}
+      CONTRACT_ADDRESS: ${CONTRACT_ADDRESS:-0x5FbDB2315678afecb367f032d93F642f64180aa3}
+      ORACLE_PRIVATE_KEY: ${ORACLE_PRIVATE_KEY:-0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d}
+      ORACLE_CORS_ORIGIN: http://localhost:5173
+      EXPLORER_URL: ${EXPLORER_URL:-https://amoy.polygonscan.com}
+    ports:
+      - "127.0.0.1:4020:4020"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4020/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  oracle-listener:
+    image: coolroof-oracle
+    depends_on: *oracle-depends
+    environment: *oracle-env
+    command: ["npx", "tsx", "src/listener.ts"]
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:5173:5173"
+
+volumes:
+  coolroof_db_data:

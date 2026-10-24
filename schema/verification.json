@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coolroof-commons.local/schema/verification.json",
+  "title": "VerificationResult",
+  "description": "Bir çatı için doğrulama turunun sonucu. Akıllı kontratın fon serbest bırakma kararına temel oluşturan tek obje.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "roof_id",
+    "status",
+    "measured_delta_c",
+    "normalized_delta_c",
+    "coverage_pct",
+    "anomaly_flags",
+    "force_majeure",
+    "weather",
+    "evidence_hash",
+    "device_signature",
+    "measured_at",
+    "reason",
+    "data_source",
+    "measurement_id",
+    "measurement_phase"
+  ],
+  "properties": {
+    "roof_id": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}-[0-9]{4}$",
+      "description": "Şehir kodu ve çatı sıra numarası.",
+      "examples": [
+        "ATH-0142"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "approved",
+        "flagged",
+        "insufficient_data"
+      ],
+      "description": "Doğrulama turunun nihai kararı."
+    },
+    "measured_delta_c": {
+      "type": "number",
+      "description": "Ham ölçülen çatı yüzey sıcaklığı farkı (°C). Negatif değer serinlemeyi gösterir."
+    },
+    "normalized_delta_c": {
+      "type": "number",
+      "description": "Hava koşullarına (ortam sıcaklığı, radyasyon, rüzgar) göre normalize edilmiş sıcaklık farkı (°C). Fon serbest bırakma kararı bu değere dayanır."
+    },
+    "coverage_pct": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Serin kaplamanın çatı yüzeyini kapsama yüzdesi."
+    },
+    "anomaly_flags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tespit edilen anomaliler (ör. sensör sapması, gölge etkisi). Anomali yoksa boş dizi.",
+      "default": []
+    },
+    "force_majeure": {
+      "type": "boolean",
+      "description": "Ölçümü geçersiz kılan mücbir sebep (fırtına, aşırı yağış vb.) tespit edildi mi."
+    },
+    "weather": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ambient_c",
+        "radiation_wm2",
+        "wind_ms",
+        "max_gust_ms",
+        "precipitation_mm",
+        "window_start",
+        "window_end"
+      ],
+      "description": "Ölçüm anındaki hava koşulları, normalizasyon ve force majeure tespiti için kullanılır.",
+      "properties": {
+        "ambient_c": {
+          "type": "number",
+          "description": "Ortam hava sıcaklığı (°C)."
+        },
+        "radiation_wm2": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Güneş radyasyonu (W/m²)."
+        },
+        "wind_ms": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Ortalama rüzgar hızı (m/s)."
+        },
+        "max_gust_ms": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Ölçüm penceresindeki en yüksek rüzgar hamlesi (m/s)."
+        },
+        "precipitation_mm": {
+          "type": "number",
+          "minimum": 0
+        },
+        "window_start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "window_end": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "evidence_hash": {
+      "type": "string",
+      "pattern": "^0x[a-fA-F0-9]{64}$",
+      "description": "Ham ölçüm kanıtının (termal görüntü + telemetri) SHA-256 özeti."
+    },
+    "device_signature": {
+      "type": "string",
+      "pattern": "^0x[a-fA-F0-9]{130}$",
+      "description": "Backend-signed evidence with a test key; not device authentication."
+    },
+    "measured_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Ölçümün alındığı an, ISO 8601."
+    },
+    "reason": {
+      "type": "string",
+      "description": "Kararın insan okuyabilir gerekçesi."
+    },
+    "data_source": {
+      "$ref": "#/$defs/data_source",
+      "description": "Karşılaştırılan önce/sonra ölçümlerinin kaynağı. İki ölçüm her zaman aynı kaynaktan gelir; measured ile simulated asla karşılaştırılmaz."
+    },
+    "measurement_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "measurement_phase": {
+      "type": "string",
+      "enum": [
+        "after",
+        "durability"
+      ]
+    }
+  },
+  "$defs": {
+    "data_source": {
+      "type": "string",
+      "enum": [
+        "measured",
+        "simulated",
+        "third_party"
+      ],
+      "description": "Verinin kökeni. measured: gerçek bir ölçüm cihazından veya uydudan (ör. Landsat ST_B10) gelen veri. simulated: fiziksel modelle üretilmiş veri. third_party: dış kaynaktan alınan, ne bizim ölçümümüz ne simülasyonumuz olan veri (ör. Open-Meteo hava verisi). Arayüz ve API bu etiketleri asla karıştırmaz."
+    }
+  }
+}

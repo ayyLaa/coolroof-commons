@@ -1,0 +1,736 @@
+{
+  "source": "measured",
+  "data_source": "measured",
+  "period": "Athens 2026-06-01..2026-08-31; London 2026-06-01..2026-08-31",
+  "statistic": "per-roof zonal mean of the cloud-masked seasonal median LST, deg C",
+  "case_id": "athens_small_roofs",
+  "instrument": "Landsat 8/9 C2L2 ST_B10",
+  "instrument_resolution_m": 100,
+  "low_albedo_group": {
+    "n": 79,
+    "albedo_range": [
+      0.174,
+      0.25
+    ],
+    "mean_c": 41.66,
+    "median_c": 41.65,
+    "std_c": 1.25,
+    "mean_area_m2": 182.8,
+    "centroid": [
+      37.95617,
+      23.75832
+    ]
+  },
+  "high_albedo_group": {
+    "n": 75,
+    "albedo_range": [
+      0.312,
+      0.454
+    ],
+    "mean_c": 41.45,
+    "median_c": 41.38,
+    "std_c": 0.98,
+    "mean_area_m2": 178.7,
+    "centroid": [
+      37.95616,
+      23.75889
+    ]
+  },
+  "delta_c": -0.21,
+  "p_value": 0.250241996877192,
+  "significant": false,
+  "resolution_caveat": "Landsat 8/9 C2L2 ST_B10 resolves surface temperature at 100 m, i.e. 10,000 m2 per pixel; the mean roof here is 172 m2, 1.7% of one pixel, so neighbouring surfaces contribute the remaining 98% of each measured value.",
+  "n_tests": 8,
+  "bonferroni_alpha": 0.00625,
+  "multiple_comparison_note": "Each case is a separate t-test, so with 8 tests at alpha 0.05 about 0.4 raw 'significant' result is expected by chance alone; only results that survive Bonferroni or Benjamini-Hochberg correction count as findings.",
+  "cases": [
+    {
+      "case_id": "athens_small_roofs",
+      "city": "Athens",
+      "period": "2026-06-01..2026-08-31",
+      "roof_class": "small",
+      "instrument": "Landsat 8/9 C2L2 ST_B10",
+      "instrument_resolution_m": 100,
+      "pixel_area_m2": 10000,
+      "mean_roof_area_m2": 171.9,
+      "roof_to_pixel_area_ratio": 0.017,
+      "n_low": 79,
+      "n_high": 75,
+      "low_albedo_group": {
+        "n": 79,
+        "albedo_range": [
+          0.174,
+          0.25
+        ],
+        "mean_c": 41.66,
+        "median_c": 41.65,
+        "std_c": 1.25,
+        "mean_area_m2": 182.8,
+        "centroid": [
+          37.95617,
+          23.75832
+        ]
+      },
+      "high_albedo_group": {
+        "n": 75,
+        "albedo_range": [
+          0.312,
+          0.454
+        ],
+        "mean_c": 41.45,
+        "median_c": 41.38,
+        "std_c": 0.98,
+        "mean_area_m2": 178.7,
+        "centroid": [
+          37.95616,
+          23.75889
+        ]
+      },
+      "delta_c": -0.21,
+      "t_statistic": -1.154,
+      "p_value": 0.250241996877192,
+      "significant": false,
+      "significance_level": 0.05,
+      "test": "Welch two-sample t-test (high vs low albedo)",
+      "confounders": {
+        "area_difference_m2": -4.1,
+        "centroid_distance_m": 50.0,
+        "height": "not available: OSM footprints carry no reliable height for these roofs",
+        "note": "Groups are different buildings; area, height, construction, shading and location are not controlled, so delta_c is an association, not an effect."
+      },
+      "resolution_caveat": "Landsat 8/9 C2L2 ST_B10 resolves surface temperature at 100 m, i.e. 10,000 m2 per pixel; the mean roof here is 172 m2, 1.7% of one pixel, so neighbouring surfaces contribute the remaining 98% of each measured value.",
+      "significant_raw": false,
+      "significant_bonferroni": false,
+      "significant_fdr": false,
+      "p_value_bonferroni": 1.0,
+      "q_value_fdr": 0.6669827908486945,
+      "interpretation": "Roof is far smaller than one thermal pixel, so the measurement describes the surroundings, not the roof. No significant difference between bright and dark roofs."
+    },
+    {
+      "case_id": "athens_small_roofs_ecostress",
+      "city": "Athens",
+      "period": "2026-06-01..2026-08-31",
+      "roof_class": "small",
+      "instrument": "ECOSTRESS L2T LSTE V2",
+      "instrument_resolution_m": 70,
+      "pixel_area_m2": 4900,
+      "mean_roof_area_m2": 172.3,
+      "roof_to_pixel_area_ratio": 0.035,
+      "n_low": 79,
+      "n_high": 75,
+      "low_albedo_group": {
+        "n": 79,
+        "albedo_range": [
+          0.174,
+          0.25
+        ],
+        "mean_c": 39.53,
+        "median_c": 39.53,
+        "std_c": 0.88,
+        "mean_area_m2": 182.8,
+        "centroid": [
+          37.95617,
+          23.75832
+        ]
+      },
+      "high_albedo_group": {
+        "n": 75,
+        "albedo_range": [
+          0.311,
+          0.454
+        ],
+        "mean_c": 39.56,
+        "median_c": 39.54,
+        "std_c": 0.7,
+        "mean_area_m2": 179.5,
+        "centroid": [
+          37.95622,
+          23.75896
+        ]
+      },
+      "delta_c": 0.03,
+      "t_statistic": 0.252,
+      "p_value": 0.801342689756233,
+      "significant": false,
+      "significance_level": 0.05,
+      "test": "Welch two-sample t-test (high vs low albedo)",
+      "confounders": {
+        "area_difference_m2": -3.3,
+        "centroid_distance_m": 56.5,
+        "height": "not available: OSM footprints carry no reliable height for these roofs",
+        "note": "Groups are different buildings; area, height, construction, shading and location are not controlled, so delta_c is an association, not an effect."
+      },
+      "resolution_caveat": "ECOSTRESS L2T LSTE V2 resolves surface temperature at 70 m, i.e. 4,900 m2 per pixel; the mean roof here is 172 m2, 3.5% of one pixel, so neighbouring surfaces contribute the remaining 96% of each measured value.",
+      "significant_raw": false,
+      "significant_bonferroni": false,
+      "significant_fdr": false,
+      "p_value_bonferroni": 1.0,
+      "q_value_fdr": 0.8849785419719384,
+      "interpretation": "Roof is far smaller than one thermal pixel, so the measurement describes the surroundings, not the roof. No significant difference between bright and dark roofs."
+    },
+    {
+      "case_id": "athens_large_roofs",
+      "city": "Athens",
+      "period": "2026-06-01..2026-08-31",
+      "roof_class": "large",
+      "instrument": "Landsat 8/9 C2L2 ST_B10",
+      "instrument_resolution_m": 100,
+      "pixel_area_m2": 10000,
+      "mean_roof_area_m2": 4003.3,
+      "roof_to_pixel_area_ratio": 0.4,
+      "n_low": 66,
+      "n_high": 68,
+      "low_albedo_group": {
+        "n": 66,
+        "albedo_range": [
+          0.099,
+          0.242
+        ],
+        "mean_c": 46.91,
+        "median_c": 47.2,
+        "std_c": 2.02,
+        "mean_area_m2": 3589.5,
+        "centroid": [
+          37.96267,
+          23.67215
+        ]
+      },
+      "high_albedo_group": {
+        "n": 68,
+        "albedo_range": [
+          0.33,
+          0.673
+        ],
+        "mean_c": 46.66,
+        "median_c": 46.86,
+        "std_c": 1.54,
+        "mean_area_m2": 4033.8,
+        "centroid": [
+          37.97099,
+          23.6783
+        ]
+      },
+      "delta_c": -0.25,
+      "t_statistic": -0.815,
+      "p_value": 0.41686424428043406,
+      "significant": false,
+      "significance_level": 0.05,
+      "test": "Welch two-sample t-test (high vs low albedo)",
+      "confounders": {
+        "area_difference_m2": 444.3,
+        "centroid_distance_m": 1072.0,
+        "height": "not available: OSM footprints carry no reliable height for these roofs",
+        "note": "Groups are different buildings; area, height, construction, shading and location are not controlled, so delta_c is an association, not an effect."
+      },
+      "resolution_caveat": "Landsat 8/9 C2L2 ST_B10 resolves surface temperature at 100 m, i.e. 10,000 m2 per pixel; the mean roof here is 4,003 m2, 40.0% of one pixel, so neighbouring surfaces contribute the remaining 60% of each measured value.",
+      "significant_raw": false,
+      "significant_bonferroni": false,
+      "significant_fdr": false,
+      "p_value_bonferroni": 1.0,
+      "q_value_fdr": 0.6669827908486945,
+      "interpretation": "Roof is far smaller than one thermal pixel, so the measurement describes the surroundings, not the roof. No significant difference between bright and dark roofs."
+    },
+    {
+      "case_id": "athens_large_roofs_ecostress",
+      "city": "Athens",
+      "period": "2026-06-01..2026-08-31",
+      "roof_class": "large",
+      "instrument": "ECOSTRESS L2T LSTE V2",
+      "instrument_resolution_m": 70,
+      "pixel_area_m2": 4900,
+      "mean_roof_area_m2": 4003.3,
+      "roof_to_pixel_area_ratio": 0.817,
+      "n_low": 66,
+      "n_high": 68,
+      "low_albedo_group": {
+        "n": 66,
+        "albedo_range": [
+          0.099,
+          0.242
+        ],
+        "mean_c": 43.0,
+        "median_c": 43.05,
+        "std_c": 1.34,
+        "mean_area_m2": 3589.5,
+        "centroid": [
+          37.96267,
+          23.67215
+        ]
+      },
+      "high_albedo_group": {
+        "n": 68,
+        "albedo_range": [
+          0.33,
+          0.673
+        ],
+        "mean_c": 42.97,
+        "median_c": 43.09,
+        "std_c": 1.04,
+        "mean_area_m2": 4033.8,
+        "centroid": [
+          37.97099,
+          23.6783
+        ]
+      },
+      "delta_c": -0.03,
+      "t_statistic": -0.145,
+      "p_value": 0.8849785419719384,
+      "significant": false,
+      "significance_level": 0.05,
+      "test": "Welch two-sample t-test (high vs low albedo)",
+      "confounders": {
+        "area_difference_m2": 444.3,
+        "centroid_distance_m": 1072.0,
+        "height": "not available: OSM footprints carry no reliable height for these roofs",
+        "note": "Groups are different buildings; area, height, construction, shading and location are not controlled, so delta_c is an association, not an effect."
+      },
+      "resolution_caveat": "ECOSTRESS L2T LSTE V2 resolves surface temperature at 70 m, i.e. 4,900 m2 per pixel; the mean roof here is 4,003 m2, 81.7% of one pixel, so neighbouring surfaces contribute the remaining 18% of each measured value.",
+      "significant_raw": false,
+      "significant_bonferroni": false,
+      "significant_fdr": false,
+      "p_value_bonferroni": 1.0,
+      "q_value_fdr": 0.8849785419719384,
+      "interpretation": "Roof fills about 82% of one 70 m thermal pixel, so the measurement mixes the roof with its surroundings. No significant difference between bright and dark roofs."
+    },
+    {
+      "case_id": "london_small_roofs",
+      "city": "London",
+      "period": "2026-06-01..2026-08-31",
+      "roof_class": "small",
+      "instrument": "Landsat 8/9 C2L2 ST_B10",
+      "instrument_resolution_m": 100,
+      "pixel_area_m2": 10000,
+      "mean_roof_area_m2": 160.5,
+      "roof_to_pixel_area_ratio": 0.016,
+      "n_low": 20,
+      "n_high": 21,
+      "low_albedo_group": {
+        "n": 20,
+        "albedo_range": [
+          0.093,
+          0.107
+        ],
+        "mean_c": 40.44,
+        "median_c": 40.34,
+        "std_c": 0.84,
+        "mean_area_m2": 132.5,
+        "centroid": [
+          51.55319,
+          -0.06116
+        ]
+      },
+      "high_albedo_group": {
+        "n": 21,
+        "albedo_range": [
+          0.122,
+          0.174
+        ],
+        "mean_c": 40.67,
+        "median_c": 40.8,
+        "std_c": 0.98,
+        "mean_area_m2": 194.4,
+        "centroid": [
+          51.55269,
+          -0.05937
+        ]
+      },
+      "delta_c": 0.23,
+      "t_statistic": 0.829,
+      "p_value": 0.41197777181196743,
+      "significant": false,
+      "significance_level": 0.05,
+      "test": "Welch two-sample t-test (high vs low albedo)",
+      "confounders": {
+        "area_difference_m2": 61.9,
+        "centroid_distance_m": 135.8,
+        "height": "not available: OSM footprints carry no reliable height for these roofs",
+        "note": "Groups are different buildings; area, height, construction, shading and location are not controlled, so delta_c is an association, not an effect."
+      },
+      "resolution_caveat": "Landsat 8/9 C2L2 ST_B10 resolves surface temperature at 100 m, i.e. 10,000 m2 per pixel; the mean roof here is 160 m2, 1.6% of one pixel, so neighbouring surfaces contribute the remaining 98% of each measured value.",
+      "significant_raw": false,
+      "significant_bonferroni": false,
+      "significant_fdr": false,
+      "p_value_bonferroni": 1.0,
+      "q_value_fdr": 0.6669827908486945,
+      "interpretation": "Roof is far smaller than one thermal pixel, so the measurement describes the surroundings, not the roof. No significant difference between bright and dark roofs."
+    },
+    {
+      "case_id": "london_small_roofs_ecostress",
+      "city": "London",
+      "period": "2026-06-01..2026-08-31",
+      "roof_class": "small",
+      "instrument": "ECOSTRESS L2T LSTE V2",
+      "instrument_resolution_m": 70,
+      "pixel_area_m2": 4900,
+      "mean_roof_area_m2": 161.6,
+      "roof_to_pixel_area_ratio": 0.033,
+      "n_low": 20,
+      "n_high": 21,
+      "low_albedo_group": {
+        "n": 20,
+        "albedo_range": [
+          0.093,
+          0.107
+        ],
+        "mean_c": 34.11,
+        "median_c": 34.1,
+        "std_c": 1.08,
+        "mean_area_m2": 132.5,
+        "centroid": [
+          51.55319,
+          -0.06116
+        ]
+      },
+      "high_albedo_group": {
+        "n": 21,
+        "albedo_range": [
+          0.122,
+          0.174
+        ],
+        "mean_c": 34.17,
+        "median_c": 34.15,
+        "std_c": 1.3,
+        "mean_area_m2": 194.4,
+        "centroid": [
+          51.55269,
+          -0.05937
+        ]
+      },
+      "delta_c": 0.06,
+      "t_statistic": 0.155,
+      "p_value": 0.8776743904947433,
+      "significant": false,
+      "significance_level": 0.05,
+      "test": "Welch two-sample t-test (high vs low albedo)",
+      "confounders": {
+        "area_difference_m2": 61.9,
+        "centroid_distance_m": 135.8,
+        "height": "not available: OSM footprints carry no reliable height for these roofs",
+        "note": "Groups are different buildings; area, height, construction, shading and location are not controlled, so delta_c is an association, not an effect."
+      },
+      "resolution_caveat": "ECOSTRESS L2T LSTE V2 resolves surface temperature at 70 m, i.e. 4,900 m2 per pixel; the mean roof here is 162 m2, 3.3% of one pixel, so neighbouring surfaces contribute the remaining 97% of each measured value.",
+      "significant_raw": false,
+      "significant_bonferroni": false,
+      "significant_fdr": false,
+      "p_value_bonferroni": 1.0,
+      "q_value_fdr": 0.8849785419719384,
+      "interpretation": "Roof is far smaller than one thermal pixel, so the measurement describes the surroundings, not the roof. No significant difference between bright and dark roofs."
+    },
+    {
+      "case_id": "london_large_roofs",
+      "city": "London",
+      "period": "2026-06-01..2026-08-31",
+      "roof_class": "large",
+      "instrument": "Landsat 8/9 C2L2 ST_B10",
+      "instrument_resolution_m": 100,
+      "pixel_area_m2": 10000,
+      "mean_roof_area_m2": 4482.8,
+      "roof_to_pixel_area_ratio": 0.448,
+      "n_low": 19,
+      "n_high": 20,
+      "low_albedo_group": {
+        "n": 19,
+        "albedo_range": [
+          0.102,
+          0.165
+        ],
+        "mean_c": 42.08,
+        "median_c": 42.14,
+        "std_c": 1.54,
+        "mean_area_m2": 3784.2,
+        "centroid": [
+          51.5315,
+          -0.26652
+        ]
+      },
+      "high_albedo_group": {
+        "n": 20,
+        "albedo_range": [
+          0.28,
+          0.428
+        ],
+        "mean_c": 40.53,
+        "median_c": 40.73,
+        "std_c": 2.46,
+        "mean_area_m2": 5414.0,
+        "centroid": [
+          51.53006,
+          -0.26882
+        ]
+      },
+      "delta_c": -1.55,
+      "t_statistic": -2.379,
+      "p_value": 0.023499368347388454,
+      "significant": true,
+      "significance_level": 0.05,
+      "test": "Welch two-sample t-test (high vs low albedo)",
+      "confounders": {
+        "area_difference_m2": 1629.8,
+        "centroid_distance_m": 226.0,
+        "height": "not available: OSM footprints carry no reliable height for these roofs",
+        "note": "Groups are different buildings; area, height, construction, shading and location are not controlled, so delta_c is an association, not an effect."
+      },
+      "resolution_caveat": "Landsat 8/9 C2L2 ST_B10 resolves surface temperature at 100 m, i.e. 10,000 m2 per pixel; the mean roof here is 4,483 m2, 44.8% of one pixel, so neighbouring surfaces contribute the remaining 55% of each measured value.",
+      "significant_raw": true,
+      "significant_bonferroni": false,
+      "significant_fdr": false,
+      "p_value_bonferroni": 0.18799494677910764,
+      "q_value_fdr": 0.18799494677910764,
+      "interpretation": "Roof is far smaller than one thermal pixel, so the measurement describes the surroundings, not the roof. Bright roofs are cooler (association, not causation) at raw p < 0.05, but this does not survive multiple-comparison correction, so it is not a finding."
+    },
+    {
+      "case_id": "london_large_roofs_ecostress",
+      "city": "London",
+      "period": "2026-06-01..2026-08-31",
+      "roof_class": "large",
+      "instrument": "ECOSTRESS L2T LSTE V2",
+      "instrument_resolution_m": 70,
+      "pixel_area_m2": 4900,
+      "mean_roof_area_m2": 4482.8,
+      "roof_to_pixel_area_ratio": 0.915,
+      "n_low": 19,
+      "n_high": 20,
+      "low_albedo_group": {
+        "n": 19,
+        "albedo_range": [
+          0.102,
+          0.165
+        ],
+        "mean_c": 35.76,
+        "median_c": 35.41,
+        "std_c": 1.08,
+        "mean_area_m2": 3784.2,
+        "centroid": [
+          51.5315,
+          -0.26652
+        ]
+      },
+      "high_albedo_group": {
+        "n": 20,
+        "albedo_range": [
+          0.28,
+          0.428
+        ],
+        "mean_c": 35.23,
+        "median_c": 35.27,
+        "std_c": 1.36,
+        "mean_area_m2": 5414.0,
+        "centroid": [
+          51.53006,
+          -0.26882
+        ]
+      },
+      "delta_c": -0.53,
+      "t_statistic": -1.364,
+      "p_value": 0.18094410143217535,
+      "significant": false,
+      "significance_level": 0.05,
+      "test": "Welch two-sample t-test (high vs low albedo)",
+      "confounders": {
+        "area_difference_m2": 1629.8,
+        "centroid_distance_m": 226.0,
+        "height": "not available: OSM footprints carry no reliable height for these roofs",
+        "note": "Groups are different buildings; area, height, construction, shading and location are not controlled, so delta_c is an association, not an effect."
+      },
+      "resolution_caveat": "ECOSTRESS L2T LSTE V2 resolves surface temperature at 70 m, i.e. 4,900 m2 per pixel; the mean roof here is 4,483 m2, 91.5% of one pixel, so neighbouring surfaces contribute the remaining 9% of each measured value.",
+      "significant_raw": false,
+      "significant_bonferroni": false,
+      "significant_fdr": false,
+      "p_value_bonferroni": 1.0,
+      "q_value_fdr": 0.6669827908486945,
+      "interpretation": "Roof fills about 92% of one 70 m thermal pixel, so the measurement mixes the roof with its surroundings. No significant difference between bright and dark roofs."
+    }
+  ],
+  "large_roof_cleaning": {
+    "rule": "Excluded: building in stadium, grandstand, garage, garages, parking, carport; any leisure=* tag; amenity=parking; building=yes outside a landuse=industrial area.",
+    "cities": {
+      "athens": {
+        "n_before": 273,
+        "n_excluded": 5,
+        "n_after": 268,
+        "excluded": [
+          {
+            "roof_id": "ATH-2005",
+            "osm_id": "relation/7317397",
+            "reason": "building=garage"
+          },
+          {
+            "roof_id": "ATH-2007",
+            "osm_id": "way/107004692",
+            "reason": "building=garage"
+          },
+          {
+            "roof_id": "ATH-2008",
+            "osm_id": "way/107004694",
+            "reason": "building=garage"
+          },
+          {
+            "roof_id": "ATH-2017",
+            "osm_id": "way/107009836",
+            "reason": "building=stadium"
+          },
+          {
+            "roof_id": "ATH-2270",
+            "osm_id": "way/633915543",
+            "reason": "leisure=sports_centre"
+          }
+        ]
+      },
+      "london": {
+        "n_before": 75,
+        "n_excluded": 0,
+        "n_after": 75,
+        "excluded": []
+      }
+    },
+    "significance_changed": false,
+    "changed_case_ids": [],
+    "cases_before_cleaning": [
+      {
+        "case_id": "athens_large_roofs",
+        "city": "Athens",
+        "period": "2026-06-01..2026-08-31",
+        "roof_class": "large",
+        "instrument": "Landsat 8/9 C2L2 ST_B10",
+        "instrument_resolution_m": 100,
+        "pixel_area_m2": 10000,
+        "mean_roof_area_m2": 4030.2,
+        "roof_to_pixel_area_ratio": 0.403,
+        "n_low": 72,
+        "n_high": 70,
+        "low_albedo_group": {
+          "n": 72,
+          "albedo_range": [
+            0.099,
+            0.243
+          ],
+          "mean_c": 47.03,
+          "median_c": 47.27,
+          "std_c": 1.99,
+          "mean_area_m2": 3799.4,
+          "centroid": [
+            37.96339,
+            23.67243
+          ]
+        },
+        "high_albedo_group": {
+          "n": 70,
+          "albedo_range": [
+            0.33,
+            0.673
+          ],
+          "mean_c": 46.67,
+          "median_c": 46.89,
+          "std_c": 1.52,
+          "mean_area_m2": 3983.6,
+          "centroid": [
+            37.97097,
+            23.67795
+          ]
+        },
+        "delta_c": -0.36,
+        "t_statistic": -1.194,
+        "p_value": 0.23452510881592578,
+        "significant": false,
+        "significance_level": 0.05,
+        "test": "Welch two-sample t-test (high vs low albedo)",
+        "confounders": {
+          "area_difference_m2": 184.2,
+          "centroid_distance_m": 973.0,
+          "height": "not available: OSM footprints carry no reliable height for these roofs",
+          "note": "Groups are different buildings; area, height, construction, shading and location are not controlled, so delta_c is an association, not an effect."
+        },
+        "resolution_caveat": "Landsat 8/9 C2L2 ST_B10 resolves surface temperature at 100 m, i.e. 10,000 m2 per pixel; the mean roof here is 4,030 m2, 40.3% of one pixel, so neighbouring surfaces contribute the remaining 60% of each measured value.",
+        "significant_raw": false,
+        "significant_bonferroni": false,
+        "significant_fdr": false,
+        "p_value_bonferroni": 1.0,
+        "q_value_fdr": 0.500483993754384,
+        "interpretation": "Roof is far smaller than one thermal pixel, so the measurement describes the surroundings, not the roof. No significant difference between bright and dark roofs."
+      },
+      {
+        "case_id": "athens_large_roofs_ecostress",
+        "city": "Athens",
+        "period": "2026-06-01..2026-08-31",
+        "roof_class": "large",
+        "instrument": "ECOSTRESS L2T LSTE V2",
+        "instrument_resolution_m": 70,
+        "pixel_area_m2": 4900,
+        "mean_roof_area_m2": 4030.2,
+        "roof_to_pixel_area_ratio": 0.822,
+        "n_low": 72,
+        "n_high": 70,
+        "low_albedo_group": {
+          "n": 72,
+          "albedo_range": [
+            0.099,
+            0.243
+          ],
+          "mean_c": 43.07,
+          "median_c": 43.12,
+          "std_c": 1.33,
+          "mean_area_m2": 3799.4,
+          "centroid": [
+            37.96339,
+            23.67243
+          ]
+        },
+        "high_albedo_group": {
+          "n": 70,
+          "albedo_range": [
+            0.33,
+            0.673
+          ],
+          "mean_c": 42.98,
+          "median_c": 43.13,
+          "std_c": 1.02,
+          "mean_area_m2": 3983.6,
+          "centroid": [
+            37.97097,
+            23.67795
+          ]
+        },
+        "delta_c": -0.09,
+        "t_statistic": -0.416,
+        "p_value": 0.6782803044147837,
+        "significant": false,
+        "significance_level": 0.05,
+        "test": "Welch two-sample t-test (high vs low albedo)",
+        "confounders": {
+          "area_difference_m2": 184.2,
+          "centroid_distance_m": 973.0,
+          "height": "not available: OSM footprints carry no reliable height for these roofs",
+          "note": "Groups are different buildings; area, height, construction, shading and location are not controlled, so delta_c is an association, not an effect."
+        },
+        "resolution_caveat": "ECOSTRESS L2T LSTE V2 resolves surface temperature at 70 m, i.e. 4,900 m2 per pixel; the mean roof here is 4,030 m2, 82.2% of one pixel, so neighbouring surfaces contribute the remaining 18% of each measured value.",
+        "significant_raw": false,
+        "significant_bonferroni": false,
+        "significant_fdr": false,
+        "p_value_bonferroni": 1.0,
+        "q_value_fdr": 0.8776743904947433,
+        "interpretation": "Roof fills about 82% of one 70 m thermal pixel, so the measurement mixes the roof with its surroundings. No significant difference between bright and dark roofs."
+      }
+    ]
+  },
+  "conclusion": {
+    "n_cases_tested": 8,
+    "n_significant_raw": 1,
+    "n_significant_bonferroni": 0,
+    "n_significant_fdr": 0,
+    "raw_significant_case_ids": [
+      "london_large_roofs"
+    ],
+    "surviving_case_ids": [],
+    "tests_summary": "8 cases were tested; 1 of them reached raw p < 0.05 (london_large_roofs p=0.023). After Bonferroni correction (alpha = 0.05/8 = 0.00625) 0 remain, and after Benjamini-Hochberg FDR correction 0 remain.",
+    "resolution_finding": "The roof-to-pixel area ratio rose from 0.016 (london_small_roofs) to 0.915 (london_large_roofs_ecostress, p=0.18), yet the signal did not strengthen: no case is significant after correction. Resolution is therefore not the only problem.",
+    "untested_explanations": [
+      "Emissivity: bright bare-metal roofs have a low thermal emissivity, so they shed heat poorly and the satellite retrieval, which assumes a generic emissivity, misreads their temperature; albedo alone does not decide the measured LST.",
+      "Albedo error: the Sentinel-2 broadband albedo is an estimate (Liang 2001 narrow-to-broadband conversion at 20 m), so some roofs may sit in the wrong albedo quartile.",
+      "Seasonal median: a summer median of cloud-free scenes smooths out the hot-day differences that a cool roof is meant to reduce.",
+      "Location: the dark and bright groups are different buildings in different places, so neighbourhood, height and construction differences are mixed into the comparison."
+    ],
+    "verdict": "Satellite data is not sufficient for roof-level verification; it is sufficient for targeting.",
+    "text": "8 cases were tested; 1 of them reached raw p < 0.05 (london_large_roofs p=0.023). After Bonferroni correction (alpha = 0.05/8 = 0.00625) 0 remain, and after Benjamini-Hochberg FDR correction 0 remain. The roof-to-pixel area ratio rose from 0.016 (london_small_roofs) to 0.915 (london_large_roofs_ecostress, p=0.18), yet the signal did not strengthen: no case is significant after correction. Resolution is therefore not the only problem. Possible causes not tested here: Emissivity: bright bare-metal roofs have a low thermal emissivity, so they shed heat poorly and the satellite retrieval, which assumes a generic emissivity, misreads their temperature; albedo alone does not decide the measured LST. Albedo error: the Sentinel-2 broadband albedo is an estimate (Liang 2001 narrow-to-broadband conversion at 20 m), so some roofs may sit in the wrong albedo quartile. Seasonal median: a summer median of cloud-free scenes smooths out the hot-day differences that a cool roof is meant to reduce. Location: the dark and bright groups are different buildings in different places, so neighbourhood, height and construction differences are mixed into the comparison. Satellite data is not sufficient for roof-level verification; it is sufficient for targeting."
+  },
+  "caveat": "Observational comparison between different buildings, not a controlled before/after experiment."
+}

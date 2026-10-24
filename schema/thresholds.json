@@ -1,0 +1,51 @@
+{
+  "default": {
+    "min_normalized_delta_c": -8.0,
+    "min_coverage_pct": 85,
+    "force_majeure_gust_ms": 20.0,
+    "force_majeure_precip_mm": 50.0,
+    "durability_check_days": 180,
+    "winter_penalty_check": false
+  },
+  "by_city": {
+    "athens": {
+      "min_normalized_delta_c": -8.0,
+      "rationale": "Reference city: -8.0 °C is the design requirement for Athens summer sun (695 kWh/m²); other cities are scaled from it. Not yet calibrated with local measurements."
+    },
+    "london": {
+      "min_normalized_delta_c": -6.0,
+      "winter_penalty_check": true,
+      "rationale": "London's summer sun is 0.81 of Athens's (562 vs 695 kWh/m²), so the same coating should cool about 0.81 × -8.0 = -6.5 °C; the requirement is rounded toward zero to -6.0 °C. A rough estimate, to be calibrated with local measurements."
+    }
+  },
+  "settlement": {
+    "durability_claim_days": 30
+  },
+  "ml": {
+    "anomaly": {
+      "repeated_value_min_run": 5,
+      "max_step_jump_c": 10.0,
+      "shadow_max_radiation_wm2": 300.0,
+      "shadow_min_delta_c": -10.0,
+      "min_reading_count": 10,
+      "isolation_tree_count": 200,
+      "outlier_contamination": 0.01,
+      "outlier_random_state": 7,
+      "min_outlier_training_sessions": 20,
+      "max_reading_gap_minutes": 5
+    },
+    "coverage": {
+      "max_coating_saturation": 0.25,
+      "min_mode_separation": 0.2,
+      "uniform_scene_min_coating_value": 0.6,
+      "morph_kernel_fraction": 0.01,
+      "min_morph_kernel_px": 3,
+      "border_fraction": 0.05,
+      "roof_color_distance": 25.0,
+      "min_roof_fraction": 0.02,
+      "min_mean_brightness": 0.25,
+      "min_contrast_std": 0.05,
+      "max_coating_fragments": 15
+    }
+  }
+}
